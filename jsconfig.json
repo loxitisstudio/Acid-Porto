@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["acid-nextjs/*"]
+    }
+  },
+  "include": ["acid-nextjs/**/*"]
+}
