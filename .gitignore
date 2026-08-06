@@ -6,6 +6,12 @@ node_modules/
 .next/
 out/
 
+# Uploaded media assets (kept local only)
+public/media/
+public/media/projects/
+acid-nextjs/public/media/
+acid-nextjs/public/media/projects/
+
 # Production build
 build/
 dist/
