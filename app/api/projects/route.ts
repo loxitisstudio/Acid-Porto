@@ -1,168 +1,221 @@
-import { NextResponse } from "next/server";
-import { projects as initialProjects, type Project } from "@/lib/data";
+import { NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabase';
 
-const storageKey = "acid-projects";
-let memoryProjects: Project[] = [...initialProjects];
+// Helper untuk validasi atau penanganan error standar
+const TABLE_NAME = 'projects'; // Sesuaikan dengan nama tabel Supabase kamu
 
-function cloneProjects(projects: Project[]): Project[] {
-  return projects.map((project) => ({ ...project, gallery: [...(project.gallery ?? [])] }));
-}
-
-function readProjects(): Project[] {
-  if (typeof process !== "undefined" && process.env[storageKey]) {
-    try {
-      const parsed = JSON.parse(process.env[storageKey] as string) as Project[];
-      if (Array.isArray(parsed)) {
-        memoryProjects = cloneProjects(parsed);
-        return cloneProjects(parsed);
-      }
-    } catch {
-      // fall back to in-memory store
-    }
-  }
-
-  return cloneProjects(memoryProjects);
-}
-
-function writeProjects(projects: Project[]) {
-  const cloned = cloneProjects(projects);
-  memoryProjects = cloned;
-  if (typeof process !== "undefined") {
-    process.env[storageKey] = JSON.stringify(cloned);
-  }
-}
-
-async function toDataUrl(file: File) {
-  const bytes = Buffer.from(await file.arrayBuffer());
-  const mimeType = file.type || "application/octet-stream";
-  return `data:${mimeType};base64,${bytes.toString("base64")}`;
-}
-
-function findProject(projects: Project[], projectId: string) {
-  return projects.find((project) => project.id === projectId);
-}
-
+// GET: Mengambil semua data proyek
 export async function GET() {
-  return NextResponse.json({ projects: readProjects() });
+  try {
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json(data || [], { status: 200 });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
+  }
 }
 
+// POST: Membuat proyek baru atau memperbarui data/media proyek
 export async function POST(request: Request) {
-  const contentType = request.headers.get("content-type") || "";
+  try {
+    const contentType = request.headers.get('content-type') || '';
 
-  if (contentType.includes("multipart/form-data")) {
-    const formData = await request.formData();
-    const projectId = formData.get("projectId")?.toString();
-    const field = formData.get("field")?.toString();
-    const action = formData.get("action")?.toString();
-    const replaceIndexValue = formData.get("replaceIndex")?.toString();
-    const replaceIndex = replaceIndexValue ? Number(replaceIndexValue) : undefined;
-    const files = formData.getAll("files").filter((value): value is File => value instanceof File);
+    // Jika menggunakan FormData (untuk upload file / media)
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData();
+      const projectId = formData.get('projectId') as string;
+      const field = formData.get('field') as 'thumbnail' | 'previewVideo' | 'gallery';
+      const action = (formData.get('action') as string) || 'append';
+      const replaceIndexStr = formData.get('replaceIndex') as string;
+      const files = formData.getAll('files') as File[];
 
-    if (!projectId || !field) {
-      return NextResponse.json({ error: "Invalid media payload" }, { status: 400 });
-    }
-
-    const projects = readProjects();
-    const project = findProject(projects, projectId);
-
-    if (!project) {
-      return NextResponse.json({ error: "Project not found" }, { status: 404 });
-    }
-
-    const nextProject: Project = { ...project };
-
-    if (field === "thumbnail") {
-      const file = files[0];
-      if (file) {
-        const dataUrl = await toDataUrl(file);
-        nextProject.thumbnail = dataUrl;
-      }
-    }
-
-    if (field === "gallery") {
-      const nextGallery = [...(project.gallery ?? [])];
-      const fileUrls = await Promise.all(files.map((file) => toDataUrl(file)));
-
-      if (typeof replaceIndex === "number" && replaceIndex >= 0 && replaceIndex < nextGallery.length) {
-        nextGallery[replaceIndex] = fileUrls[0] ?? nextGallery[replaceIndex];
-      } else if (action === "replace") {
-        nextGallery.splice(0, nextGallery.length, ...(fileUrls.length ? fileUrls : nextGallery));
-      } else {
-        nextGallery.push(...fileUrls);
+      if (!projectId) {
+        return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });
       }
 
-      nextProject.gallery = nextGallery;
+      // Ambil data project saat ini dari database
+      const { data: existingProject, error: fetchError } = await supabase
+        .from(TABLE_NAME)
+        .select('*')
+        .eq('id', projectId)
+        .single();
+
+      // Jika project belum ada di DB (misal baru dibuat di client state), buat baru dulu atau sesuaikan logic
+      let currentData = existingProject;
+      if (fetchError || !currentData) {
+        // Fallback jika project belum tersimpan di DB, buat objek dasarnya
+        currentData = {
+          id: projectId,
+          title: 'New Project',
+          category: 'DESIGN',
+          gallery: [],
+        };
+      }
+
+      // Proses upload file ke Supabase Storage (pastikan bucket 'portfolio' sudah dibuat)
+      const uploadedUrls: string[] = [];
+      for (const file of files) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${projectId}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+        const filePath = `${field}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('portfolio') // Ganti dengan nama bucket Supabase Storage kamu
+          .upload(filePath, file);
+
+        if (uploadError) {
+          return NextResponse.json({ error: uploadError.message }, { status: 500 });
+        }
+
+        // Ambil Public URL dari file yang di-upload
+        const { data: publicUrlData } = supabase.storage
+          .from('portfolio')
+          .getPublicUrl(filePath);
+
+        uploadedUrls.push(publicUrlData.publicUrl);
+      }
+
+      // Modifikasi field berdasarkan aksi (append/replace)
+      let updatedFieldVal: any = currentData[field];
+
+      if (field === 'thumbnail' || field === 'previewVideo') {
+        updatedFieldVal = uploadedUrls[0] || currentData[field];
+      } else if (field === 'gallery') {
+        let galleryList: string[] = Array.isArray(currentData.gallery) ? [...currentData.gallery] : [];
+
+        if (action === 'replace' && replaceIndexStr !== null && replaceIndexStr !== '') {
+          const idx = parseInt(replaceIndexStr, 10);
+          if (!isNaN(idx) && uploadedUrls[0]) {
+            galleryList[idx] = uploadedUrls[0];
+          }
+        } else {
+          galleryList.push(...uploadedUrls);
+        }
+        updatedFieldVal = galleryList;
+      }
+
+      // Simpan perubahan ke database Supabase
+      const { data: savedProject, error: updateError } = await supabase
+        .from(TABLE_NAME)
+        .upsert({
+          ...currentData,
+          [field]: updatedFieldVal,
+          updated_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (updateError) {
+        return NextResponse.json({ error: updateError.message }, { status: 500 });
+      }
+
+      return NextResponse.json({ project: savedProject }, { status: 200 });
     }
 
-    const next = projects.map((item) => (item.id === project.id ? nextProject : item));
-    writeProjects(next);
-    return NextResponse.json({ projects: readProjects(), project: nextProject });
+    // Jika Request berupa JSON (Update teks biasa / Create project JSON body)
+    const body = await request.json();
+    const { id, ...rest } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });
+    }
+
+    const { data: savedProject, error: upsertError } = await supabase
+      .from(TABLE_NAME)
+      .upsert({
+        id,
+        ...rest,
+        updated_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (upsertError) {
+      return NextResponse.json({ error: upsertError.message }, { status: 500 });
+    }
+
+    // Ambil seluruh data terbaru setelah di-update untuk dikembalikan ke frontend
+    const { data: allProjects } = await supabase
+      .from(TABLE_NAME)
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    return NextResponse.json({ projects: allProjects || [savedProject], project: savedProject }, { status: 200 });
+
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
   }
-
-  const body = await request.json().catch(() => null);
-  const project = body && typeof body === "object" ? (body as Project) : null;
-
-  if (!project?.id || !project.title) {
-    return NextResponse.json({ error: "Invalid project payload" }, { status: 400 });
-  }
-
-  const projects = readProjects();
-  const next = [project, ...projects];
-  writeProjects(next);
-
-  return NextResponse.json({ projects: readProjects(), project });
 }
 
-export async function PUT(request: Request) {
-  const body = await request.json().catch(() => null);
-
-  if (Array.isArray(body)) {
-    const next = cloneProjects(body as Project[]);
-    writeProjects(next);
-    return NextResponse.json({ projects: next });
-  }
-
-  if (body && typeof body === "object" && "project" in body) {
-    const incoming = (body as { project: Project }).project;
-    const projects = readProjects();
-    const next = projects.map((project) => (project.id === incoming.id ? incoming : project));
-    writeProjects(next);
-    return NextResponse.json({ projects: cloneProjects(next), project: incoming });
-  }
-
-  return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
-}
-
+// DELETE: Menghapus proyek atau item galeri tertentu
 export async function DELETE(request: Request) {
-  const url = new URL(request.url);
-  const projectId = url.searchParams.get("projectId");
-  const field = url.searchParams.get("field");
-  const indexValue = url.searchParams.get("index");
+  try {
+    const { searchParams } = new URL(request.url);
+    const projectId = searchParams.get('projectId');
+    const field = searchParams.get('field');
+    const indexStr = searchParams.get('index');
 
-  if (!projectId) {
-    return NextResponse.json({ error: "Missing projectId" }, { status: 400 });
-  }
-
-  const projects = readProjects();
-  const project = findProject(projects, projectId);
-
-  if (!project) {
-    return NextResponse.json({ error: "Project not found" }, { status: 404 });
-  }
-
-  if (field === "gallery" && indexValue) {
-    const index = Number(indexValue);
-    const updatedGallery = [...(project.gallery ?? [])];
-    if (index >= 0 && index < updatedGallery.length) {
-      updatedGallery.splice(index, 1);
-      const updatedProject = { ...project, gallery: updatedGallery };
-      const next = projects.map((item) => (item.id === project.id ? updatedProject : item));
-      writeProjects(next);
-      return NextResponse.json({ projects: readProjects(), project: updatedProject });
+    if (!projectId) {
+      return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });
     }
-  }
 
-  const next = projects.filter((item) => item.id !== projectId);
-  writeProjects(next);
-  return NextResponse.json({ projects: readProjects() });
+    // Jika ingin menghapus salah satu item di galeri
+    if (field === 'gallery' && indexStr !== null) {
+      const index = parseInt(indexStr, 10);
+      
+      const { data: currentProject, error: fetchErr } = await supabase
+        .from(TABLE_NAME)
+        .select('*')
+        .eq('id', projectId)
+        .single();
+
+      if (fetchErr || !currentProject) {
+        return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+      }
+
+      const galleryList: string[] = Array.isArray(currentProject.gallery) ? [...currentProject.gallery] : [];
+      galleryList.splice(index, 1);
+
+      const { data: updatedProject, error: updateErr } = await supabase
+        .from(TABLE_NAME)
+        .update({ gallery: galleryList, updated_at: new Date().toISOString() })
+        .eq('id', projectId)
+        .select()
+        .single();
+
+      if (updateErr) {
+        return NextResponse.json({ error: updateErr.message }, { status: 500 });
+      }
+
+      return NextResponse.json({ project: updatedProject }, { status: 200 });
+    }
+
+    // Jika menghapus seluruh proyek
+    const { error: deleteError } = await supabase
+      .from(TABLE_NAME)
+      .delete()
+      .eq('id', projectId);
+
+    if (deleteError) {
+      return NextResponse.json({ error: deleteError.message }, { status: 500 });
+    }
+
+    // Ambil sisa data proyek setelah dihapus
+    const { data: remainingProjects } = await supabase
+      .from(TABLE_NAME)
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    return NextResponse.json(remainingProjects || [], { status: 200 });
+
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
+  }
 }
