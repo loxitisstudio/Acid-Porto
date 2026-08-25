@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
-// Helper untuk validasi atau penanganan error standar
-const TABLE_NAME = 'projects'; // Sesuaikan dengan nama tabel Supabase kamu
+const TABLE_NAME = 'projects';
 
 // GET: Mengambil semua data proyek
 export async function GET() {
@@ -27,7 +26,6 @@ export async function POST(request: Request) {
   try {
     const contentType = request.headers.get('content-type') || '';
 
-    // Jika menggunakan FormData (untuk upload file / media)
     if (contentType.includes('multipart/form-data')) {
       const formData = await request.formData();
       const projectId = formData.get('projectId') as string;
@@ -40,17 +38,14 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });
       }
 
-      // Ambil data project saat ini dari database
       const { data: existingProject, error: fetchError } = await supabase
         .from(TABLE_NAME)
         .select('*')
         .eq('id', projectId)
         .single();
 
-      // Jika project belum ada di DB (misal baru dibuat di client state), buat baru dulu atau sesuaikan logic
       let currentData = existingProject;
       if (fetchError || !currentData) {
-        // Fallback jika project belum tersimpan di DB, buat objek dasarnya
         currentData = {
           id: projectId,
           title: 'New Project',
@@ -59,7 +54,6 @@ export async function POST(request: Request) {
         };
       }
 
-      // Proses upload file ke Supabase Storage (pastikan bucket 'portfolio' sudah dibuat)
       const uploadedUrls: string[] = [];
       for (const file of files) {
         const fileExt = file.name.split('.').pop();
@@ -67,14 +61,13 @@ export async function POST(request: Request) {
         const filePath = `${field}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
-          .from('portfolio') // Ganti dengan nama bucket Supabase Storage kamu
+          .from('portfolio')
           .upload(filePath, file);
 
         if (uploadError) {
           return NextResponse.json({ error: uploadError.message }, { status: 500 });
         }
 
-        // Ambil Public URL dari file yang di-upload
         const { data: publicUrlData } = supabase.storage
           .from('portfolio')
           .getPublicUrl(filePath);
@@ -82,7 +75,6 @@ export async function POST(request: Request) {
         uploadedUrls.push(publicUrlData.publicUrl);
       }
 
-      // Modifikasi field berdasarkan aksi (append/replace)
       let updatedFieldVal: any = currentData[field];
 
       if (field === 'thumbnail' || field === 'previewVideo') {
@@ -101,7 +93,6 @@ export async function POST(request: Request) {
         updatedFieldVal = galleryList;
       }
 
-      // Simpan perubahan ke database Supabase
       const { data: savedProject, error: updateError } = await supabase
         .from(TABLE_NAME)
         .upsert({
@@ -119,7 +110,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ project: savedProject }, { status: 200 });
     }
 
-    // Jika Request berupa JSON (Update teks biasa / Create project JSON body)
     const body = await request.json();
     const { id, ...rest } = body;
 
@@ -141,7 +131,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: upsertError.message }, { status: 500 });
     }
 
-    // Ambil seluruh data terbaru setelah di-update untuk dikembalikan ke frontend
     const { data: allProjects } = await supabase
       .from(TABLE_NAME)
       .select('*')
@@ -149,7 +138,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ projects: allProjects || [savedProject], project: savedProject }, { status: 200 });
 
- } catch (err: any) {
+  } catch (err: any) {
     console.error("API Error Detail:", err);
     return NextResponse.json({ 
       error: err.message || 'Internal Server Error',
@@ -170,7 +159,6 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });
     }
 
-    // Jika ingin menghapus salah satu item di galeri
     if (field === 'gallery' && indexStr !== null) {
       const index = parseInt(indexStr, 10);
       
@@ -201,7 +189,6 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ project: updatedProject }, { status: 200 });
     }
 
-    // Jika menghapus seluruh proyek
     const { error: deleteError } = await supabase
       .from(TABLE_NAME)
       .delete()
@@ -211,7 +198,6 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: deleteError.message }, { status: 500 });
     }
 
-    // Ambil sisa data proyek setelah dihapus
     const { data: remainingProjects } = await supabase
       .from(TABLE_NAME)
       .select('*')
