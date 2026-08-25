@@ -3,7 +3,11 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["acid-nextjs/*"]
-    }
+    },
+    "jsx": "preserve",
+    "moduleResolution": "bundler",
+    "ignoreDeprecations": "6.0",
+    "allowSyntheticDefaultImports": true
   },
-  "include": ["acid-nextjs/**/*"]
+  "include": ["**/*"]
 }

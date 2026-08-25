@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    /* Lenis provides smooth scrolling; avoid CSS smooth behavior conflicts */
+    scroll-behavior: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 217, 255, 0.35) transparent;
+  }
+
+  body {
+    /* Gunakan warna fallback jika theme kustom belum terdeteksi */
+    @apply bg-black text-white font-body antialiased overflow-x-hidden;
+    cursor: none;
+  }
+
+  body::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  body::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  body::-webkit-scrollbar-thumb {
+    background: rgba(0, 217, 255, 0.32);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  body::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 217, 255, 0.55);
+  }
+
+  @font-face {
+    font-family: "Brandbe";
+    src: url("/hero/font/Brandbe Extra Bold.otf") format("opentype");
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  .font-brandbe {
+    font-family: "Brandbe", var(--font-display), sans-serif;
+  }
+
+  ::selection {
+    background-color: #00d9ff;
+    color: #000000;
+  }
+
+  a,
+  button {
+    cursor: none;
+  }
+
+  @media (max-width: 900px) {
+    body,
+    a,
+    button {
+      cursor: auto;
+    }
+  }
+}
+
+@layer components {
+  .eyebrow {
+    @apply flex items-center gap-2.5 text-[11px] font-medium uppercase tracking-widest text-zinc-400;
+  }
+
+  .eyebrow::before {
+    content: "/";
+    @apply text-cyan-400;
+  }
+
+  .section-shell {
+    @apply relative mx-auto max-w-[1600px] px-[6vw] py-[80px] md:px-[8vw] md:py-[140px];
+  }
+}

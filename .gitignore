@@ -12,6 +12,16 @@ public/media/projects/
 acid-nextjs/public/media/
 acid-nextjs/public/media/projects/
 
+# Nested project build/output
+acid-nextjs/node_modules/
+acid-nextjs/.next/
+acid-nextjs/.vscode/
+acid-nextjs/out/
+acid-nextjs/build/
+acid-nextjs/dist/
+acid-nextjs/.DS_Store
+acid-nextjs/.parcel-cache/
+
 # Production build
 build/
 dist/
