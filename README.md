@@ -44,3 +44,6 @@ Every section is its own component; all content lives in `lib/data.ts` so copy c
 - `bg` #050505 · `accent` #00D9FF · `ink-2` #8A8A8A · `line` rgba(255,255,255,.06)
 - `font-display` = Space Grotesk (headlines), `font-body` = Inter (everything else)
 - `hero` / `display` / `display-lg` font sizes are fluid via `clamp()`
+=======
+# Acid-Porto
+
