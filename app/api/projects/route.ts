@@ -149,8 +149,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ projects: allProjects || [savedProject], project: savedProject }, { status: 200 });
 
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
+ } catch (err: any) {
+    console.error("API Error Detail:", err);
+    return NextResponse.json({ 
+      error: err.message || 'Internal Server Error',
+      stack: err.stack 
+    }, { status: 500 });
   }
 }
 
