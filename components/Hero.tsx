@@ -172,18 +172,28 @@ export default function Hero() {
       {/* Main Content */}
       <div className="relative z-20 my-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
         
-        {/* Sisi Kiri */}
+        {/* ─── Sisi Kiri: Identity + Value + CTA ─── */}
         <div className="relative z-30 lg:col-span-4 flex flex-col gap-8">
-          <Reveal>
-            <div className="flex flex-col gap-2.5 text-[11px] font-light uppercase tracking-widest2 text-ink-2">
-              <p>CREATIVE DEVELOPER</p>
-              <p>MOTION DESIGNER</p>
-              <p>VISUAL STORYTELLER</p>
-              <p>CREATIVE EDITOR</p>
-            </div>
-          </Reveal>
+          <div className="flex flex-col gap-5">
+            <Reveal>
+              <div className="flex flex-col gap-1">
+                <p className="text-sm font-medium uppercase tracking-[0.18em] text-ink">
+                  Motion Designer
+                </p>
+                <p className="text-sm font-light uppercase tracking-[0.18em] text-ink">
+                  &amp; Creative Developer
+                </p>
+              </div>
+            </Reveal>
 
-          <Reveal delay={0.1}>
+            <Reveal delay={0.06}>
+              <p className="text-[13px] font-light leading-[1.7] text-ink-2 max-w-[300px]">
+                Crafting cinematic visuals and interactive experiences.
+              </p>
+            </Reveal>
+          </div>
+
+          <Reveal delay={0.12}>
             <div>
               <a
                 href="#work"
@@ -198,7 +208,7 @@ export default function Hero() {
           </Reveal>
         </div>
 
-        {/* Sisi Kanan/Tengah */}
+        {/* Sisi Kanan/Tengah — UNCHANGED */}
         <div className="relative lg:col-span-8 h-[400px] md:h-[500px] w-full pointer-events-none flex items-center justify-center">
           
           {/* LAYER 1: Teks ACID */}

@@ -8,6 +8,16 @@ export default function Loader({ onDone }: { onDone: () => void }) {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
+    // Cek apakah user sudah pernah melihat loader di sesi browser ini
+    const hasLoaded = sessionStorage.getItem("hasLoadedBefore");
+
+    if (hasLoaded) {
+      setVisible(false);
+      onDone();
+      return;
+    }
+
+    // Jika belum pernah, jalankan animasi gimik timer
     const start = performance.now();
     const duration = 1800;
 
@@ -20,12 +30,15 @@ export default function Loader({ onDone }: { onDone: () => void }) {
       } else {
         setTimeout(() => {
           setVisible(false);
+          sessionStorage.setItem("hasLoadedBefore", "true"); // Simpan flag penanda
           setTimeout(onDone, 700);
         }, 300);
       }
     };
     requestAnimationFrame(tick);
   }, [onDone]);
+
+  if (!visible) return null;
 
   return (
     <AnimatePresence>
@@ -45,7 +58,7 @@ export default function Loader({ onDone }: { onDone: () => void }) {
             transition={{ duration: 0.6 }}
             className="h-1.5 w-1.5 rounded-full bg-white shadow-[0_0_14px_4px_rgba(255,255,255,1)]"
           />
-          
+
           {/* Garis Vertikal Penunjuk */}
           <motion.div
             initial={{ height: 0 }}
@@ -53,8 +66,8 @@ export default function Loader({ onDone }: { onDone: () => void }) {
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
             className="my-3 w-px bg-gradient-to-b from-white to-transparent opacity-40"
           />
-          
-          {/* Judul Utama Brand Besar Sesuai Gambar */}
+
+          {/* Judul Utama Brand */}
           <motion.div
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
@@ -73,13 +86,13 @@ export default function Loader({ onDone }: { onDone: () => void }) {
             Creative Digital
           </motion.div>
 
-          {/* Progress Bar Kontainer (Diletakkan di bagian bawah layar secara absolut) */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 1.1 }}
-            className="absolute bottom-16 flex w-[calc(100%-40px)] max-w-[360px] flex-col gap-2.5 px-4 z-10 sm:w-[380px]"
-          >
+          {/* Progress Bar */}
+<motion.div
+  initial={{ opacity: 0, y: 10 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.5, delay: 1.1 }}
+  className="absolute bottom-16 flex w-[calc(100%-40px)] max-w-[360px] flex-col gap-2.5 px-4 z-10 sm:w-[380px]"
+>
             <div className="flex justify-between items-center text-[10px] uppercase tracking-[0.28em] text-ink-2/70 sm:text-[11px]">
               <span>Loading Experience</span>
               <span className="tabular-nums">{String(progress).padStart(2, "0")}%</span>
@@ -96,7 +109,6 @@ export default function Loader({ onDone }: { onDone: () => void }) {
               INITIALIZING CHAYA KOMET
             </p>
           </motion.div>
-          
         </motion.div>
       )}
     </AnimatePresence>

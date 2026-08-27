@@ -1,22 +1,6 @@
-export type Skill = {
-  id: string;
-  name: string;
-  chip: string;
-  chipColor: string;
-  desc: string;
-  level: number;
-};
-
-export const skills: Skill[] = [
-  { id: "ae", name: "After Effects", chip: "Ae", chipColor: "#9999FF", desc: "Motion, VFX, compositing", level: 95 },
-  { id: "cc", name: "CapCut", chip: "Cc", chipColor: "#00E0D3", desc: "Fast social-form editing", level: 90 },
-  { id: "ai", name: "Illustrator", chip: "Ai", chipColor: "#FF9A00", desc: "Vector design, logos", level: 85 },
-  { id: "ps", name: "Photoshop", chip: "Ps", chipColor: "#31A8FF", desc: "Compositing, retouching", level: 88 },
-  { id: "pr", name: "Premiere Pro", chip: "Pr", chipColor: "#EA77FF", desc: "Colour, pacing, story", level: 92 },
-  { id: "bl", name: "Blender", chip: "Bl", chipColor: "#F5792A", desc: "3D modelling, rendering", level: 75 },
-  { id: "vs", name: "VS Code", chip: "Vs", chipColor: "#3B82F6", desc: "Web development, tooling", level: 80 },
-  { id: "fg", name: "Figma", chip: "Fg", chipColor: "#A259FF", desc: "Interface & prototyping", level: 82 },
-];
+// ─── SKILLS REMOVED ─────────────────────────────────────────
+// The old Skill type and skills array have been removed.
+// Tool information is now embedded in each Service entry below.
 
 export type Project = {
   id: string;
@@ -299,19 +283,46 @@ export const projects: Project[] = [
   },
 ];
 
+// ─── SERVICES (unified — capability + tools) ─────────────────
+
 export type Service = {
   num: string;
   name: string;
   desc: string;
+  tools: string[];
 };
 
-export const services: Service[] = [
-  { num: "01", name: "Motion Graphics", desc: "Dynamic animations and visual effects built to move a story forward, frame by frame." },
-  { num: "02", name: "Video Editing", desc: "Professional cuts and colour that bring pacing, rhythm, and clarity to raw footage." },
-  { num: "03", name: "Logo & Branding", desc: "Identity systems designed to feel unmistakably yours across every touchpoint." },
-  { num: "04", name: "UI / UX Design", desc: "Clean, human-first interfaces that convert attention into action." },
-  { num: "05", name: "Web Development", desc: "Fast, modern builds engineered for performance and cinematic detail." },
-  { num: "06", name: "Roblox Development", desc: "Games and experiences built for scale, with systems players actually enjoy." },
+export const services = [
+  {
+    num: "01",
+    name: "Motion Graphics",
+    desc: "Dynamic animations and visual effects built to move a story forward, frame by frame.",
+    tools: ["After Effects", "Figma", "Illustator"],
+  },
+  {
+    num: "02",
+    name: "Video Editing",
+    desc: "Professional cuts and colour that bring pacing, rhythm, and clarity to raw footage.",
+    tools: ["After Effects", "CapCut", "Premiere Pro", "Blender"],
+  },
+  {
+    num: "03",
+    name: "UI / UX Design",
+    desc: "Clean, human-first interfaces that convert attention into action.",
+    tools: ["Figma", "Illustrator"],
+  },
+  {
+    num: "04",
+    name: "Roblox Development",
+    desc: "Games and experiences built for scale, with systems players actually enjoy.",
+    tools: ["Roblox Studio", "Blender", "VS Code"],
+  },
+  {
+    num: "05",
+    name: "Web Development",
+    desc: "Modern, fast, and responsive web applications crafted with high performance code.",
+    tools: ["VS Code", "Figma"],
+  },
 ];
 
 export type PricingTier = {
@@ -378,7 +389,6 @@ export type NavLink = {
 
 export const navLinks: NavLink[] = [
   { label: "About", href: "#about" },
-  { label: "Skills", href: "#skills" },
   { label: "Portfolio", href: "#work" },
   { label: "Services", href: "#services" },
   { label: "Pricing", href: "#pricing" },

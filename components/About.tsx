@@ -35,7 +35,7 @@ function StatCounter({ value, label }: { value: number; label: string }) {
 
 export default function About() {
   return (
-    <section id="about" className="section-shell bg-black text-white min-h-screen py-20 px-8 md:px-16">
+    <section id="about" className="section-shell bg-black text-white py-12 md:py-16 px-8 md:px-16">
       {/* Grid Utama (4 Kolom Horizontal Sejajar) */}
       <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1.2fr] items-start">
         

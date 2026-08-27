@@ -5,7 +5,6 @@ import { useState } from "react";
 import { motion, useMotionValueEvent, useScroll } from "framer-motion";
 import { navLinks } from "@/lib/data";
 import MagneticButton from "./MagneticButton";
-import logoWhite from "@/icon/Logo LX Putih.png";
 
 export default function Navbar() {
   const { scrollY } = useScroll();
@@ -103,7 +102,7 @@ export default function Navbar() {
 
             {/* Logo Utama */}
             <Image 
-              src={logoWhite} 
+              src="/icon/Logo LX Putih.png" 
               alt="ACID logo" 
               width={32} 
               height={32} 
@@ -131,7 +130,7 @@ export default function Navbar() {
         {/* ── Let's Talk Button ── */}
         <div className="hidden md:block">
           <MagneticButton
-            href="#contact"
+            href="#footer"
             className="rounded-full border border-line-2 bg-glass px-6 py-2.5 text-[11px] uppercase tracking-[0.18em] transition-all duration-300 hover:border-accent hover:bg-accent-dim hover:text-accent font-mono"
           >
             Let&apos;s Talk

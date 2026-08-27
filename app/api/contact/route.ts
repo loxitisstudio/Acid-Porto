@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+export const runtime = "nodejs";
+
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 const CONTACT_EMAIL_TO = process.env.CONTACT_EMAIL_TO;
 const CONTACT_EMAIL_FROM = process.env.CONTACT_EMAIL_FROM;
@@ -10,7 +12,7 @@ type ContactPayload = {
   email: string;
   subject?: string;
   message: string;
-  destination: "email" | "discord";
+  destination?: "email" | "discord"; // Diubah jadi opsional
   honeypot?: string;
 };
 
@@ -23,7 +25,10 @@ function validatePayload(payload: ContactPayload) {
     return { valid: false, reason: "missing_fields" };
   }
 
-  if (!payload.destination || !["email", "discord"].includes(payload.destination)) {
+  // Jika destination tidak dikirim dari UI, otomatis diset ke "discord"
+  if (!payload.destination) {
+    payload.destination = "discord";
+  } else if (!["email", "discord"].includes(payload.destination)) {
     return { valid: false, reason: "invalid_destination" };
   }
 
@@ -36,7 +41,14 @@ async function sendEmail(payload: ContactPayload) {
   }
 
   const formattedSubject = `New contact from ${payload.name}${payload.subject ? ` — ${payload.subject}` : ""}`;
-  const emailBody = [`Name: ${payload.name}`, `Email: ${payload.email}`, `Destination: ${payload.destination}`, ``, `Message:`, payload.message].join("\n");
+  const emailBody = [
+    `Name: ${payload.name}`,
+    `Email: ${payload.email}`,
+    `Destination: ${payload.destination}`,
+    ``,
+    `Message:`,
+    payload.message,
+  ].join("\n");
 
   const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
     method: "POST",
@@ -77,9 +89,10 @@ async function sendDiscord(payload: ContactPayload) {
         {
           title: `New message from ${payload.name}`,
           description: payload.message,
+          color: 0x22d3ee, // Warna Cyan menyesuaikan tema UI
           fields: [
             { name: "Email", value: payload.email, inline: true },
-            { name: "Destination", value: payload.destination, inline: true },
+            { name: "Destination", value: payload.destination ?? "discord", inline: true },
             { name: "Subject", value: payload.subject || "(no subject)", inline: false },
           ],
           timestamp: new Date().toISOString(),
@@ -95,24 +108,26 @@ async function sendDiscord(payload: ContactPayload) {
 }
 
 export async function POST(request: Request) {
-  const payload = (await request.json()) as ContactPayload;
-  const validation = validatePayload(payload);
+  try {
+    const payload = (await request.json()) as ContactPayload;
+    const validation = validatePayload(payload);
 
-  if (!validation.valid) {
-    if (validation.reason === "spam") {
-      return NextResponse.json({ success: true });
+    if (!validation.valid) {
+      if (validation.reason === "spam") {
+        // Mengelabui bot agar mengira pesan berhasil dikirim
+        return NextResponse.json({ success: true });
+      }
+
+      return NextResponse.json(
+        { success: false, error: "Form validation failed." },
+        { status: 400 }
+      );
     }
 
-    return NextResponse.json(
-      { success: false, error: "Form validation failed." },
-      { status: 400 },
-    );
-  }
-
-  try {
     if (payload.destination === "email") {
       await sendEmail(payload);
-    } else if (payload.destination === "discord") {
+    } else {
+      // Default ke discord jika destination berupa "discord" atau undefined
       await sendDiscord(payload);
     }
 
