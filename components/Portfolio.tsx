@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Reveal from "./Reveal";
 import ProjectModal from "./ProjectModal";
-import { projects as initialProjects, type Project } from "@/lib/data";
+import { type Project } from "@/lib/data";
 import { getProjects } from "@/lib/projectClient";
 
 const categories = [
@@ -19,7 +19,7 @@ const categories = [
 ];
 
 export default function Portfolio() {
-  const [projects, setProjects] = useState<Project[]>(initialProjects);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [active, setActive] = useState<Project | null>(null);
   const [selectedCategory, setSelectedCategory] = useState("ALL WORKS");
 
@@ -29,12 +29,15 @@ export default function Portfolio() {
     async function loadProjects() {
       try {
         const fresh = await getProjects();
+
         if (isMounted) {
-          setProjects(fresh.length ? fresh : initialProjects);
+          setProjects(fresh);
         }
-      } catch {
+      } catch (error) {
+        console.error("Failed to load projects:", error);
+
         if (isMounted) {
-          setProjects(initialProjects);
+          setProjects([]);
         }
       }
     }
@@ -42,8 +45,11 @@ export default function Portfolio() {
     loadProjects();
 
     const handleFocus = () => loadProjects();
+
     const handleVisibilityChange = () => {
-      if (!document.hidden) loadProjects();
+      if (!document.hidden) {
+        loadProjects();
+      }
     };
 
     window.addEventListener("focus", handleFocus);
