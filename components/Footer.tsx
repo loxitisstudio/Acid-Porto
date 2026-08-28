@@ -110,9 +110,10 @@ export default function FooterWithContact() {
 
                   <div className="mt-2 flex">
                     <MagneticButton
-                      type="submit"
-                      className="group inline-flex items-center gap-14 rounded-md border border-cyan-400/40 bg-black/60 px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white transition-all duration-300 hover:border-cyan-400 hover:bg-white/5"
-                    >
+  as="button"
+  type="submit"
+  className="group inline-flex items-center gap-14 rounded-md border border-cyan-400/40 bg-black/60 px-7 py-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white transition-all duration-300 hover:border-cyan-400 hover:bg-white/5"
+>
                       {status === "success" ? "Sent ✓" : status === "sending" ? "Sending..." : "Send Message"}
                       <span className="text-[12px] text-white/50 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-cyan-400">↗</span>
                     </MagneticButton>
