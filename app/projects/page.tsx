@@ -97,11 +97,12 @@ export default function AllProjectsPage() {
                 <div className="relative aspect-[16/9] w-full overflow-hidden bg-bg">
                   {project.thumbnail || project.gallery?.[0] ? (
                     <Image
-                      src={project.thumbnail ?? project.gallery![0]}
-                      alt={project.title}
-                      fill
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
+  src={project.thumbnail ?? project.gallery![0]}
+  alt={project.title}
+  fill
+  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+  className="object-cover transition-transform duration-500 group-hover:scale-105"
+/>
                   ) : (
                     <div className="absolute inset-0" style={{ background: project.gradient }} />
                   )}

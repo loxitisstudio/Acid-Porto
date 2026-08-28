@@ -13,6 +13,8 @@ export type Project = {
   gradient: string;
   thumbnail?: string;
   previewVideo?: string;
+  videoUrl?: string;
+  audioUrl?: string;
   gallery?: string[];
   concept?: string;
   process?: string;

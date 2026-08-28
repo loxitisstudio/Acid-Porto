@@ -82,13 +82,14 @@ export default function About() {
             >
               {/* Replace cube 3D placeholder with Saturn image */}
               <div className="relative h-[220px] w-[220px] md:h-[260px] md:w-[260px]">
-                <Image
-                  src="/hero/saturn.webp"
-                  alt="Saturn"
-                  fill
-                  className="object-contain"
-                  priority
-                />
+               <Image
+  src="/hero/saturn.webp"
+  alt="Saturn"
+  fill
+  sizes="(max-width: 768px) 100vw, 350px"
+  className="object-contain"
+  priority
+/>
               </div>
             </motion.div>
           </Reveal>

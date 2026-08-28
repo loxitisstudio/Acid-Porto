@@ -1,16 +1,23 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function GET() {
-  // Return dummy data/mock data agar build tidak gagal
-  const mockProjects = [
-    {
-      id: "1",
-      title: "Project Alpha",
-      category: "Web App",
-      image: "/hero/cube.webp",
-      description: "Sample project description",
-    },
-  ];
+  try {
+    const { data, error } = await supabase
+      .from('projects')
+      .select('*')
+      .order('id', { ascending: false });
 
-  return NextResponse.json(mockProjects);
+    if (error) throw error;
+
+    // Bungkus ke dalam objek { projects: data } agar terbaca oleh projectClient.ts
+    return NextResponse.json({ projects: data });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }

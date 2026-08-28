@@ -40,7 +40,8 @@ export default function MagneticButton<T extends ElementType = "a">({
     y.set(0);
   };
 
-  const MotionTag = motion(as as ElementType);
+  // Diubah menggunakan motion.create() sesuai standar terbaru Framer Motion
+  const MotionTag = motion.create(as as ElementType);
 
   return (
     <MotionTag

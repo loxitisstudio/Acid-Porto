@@ -3,21 +3,20 @@
 import { motion } from "framer-motion";
 import { ReactNode } from "react";
 
-type RevealProps = {
+interface RevealProps {
   children: ReactNode;
-  className?: string;
   delay?: number;
-  y?: number;
-};
+  className?: string;
+}
 
-export default function Reveal({ children, className, delay = 0, y = 32 }: RevealProps) {
+export default function Reveal({ children, delay = 0, className = "" }: RevealProps) {
   return (
     <motion.div
-      className={className}
-      initial={{ opacity: 0, y }}
+      initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.3 }}
-      transition={{ duration: 0.9, delay, ease: [0.16, 1, 0.3, 1] }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.6, delay, ease: [0.16, 1, 0.3, 1] }}
+      className={className}
     >
       {children}
     </motion.div>

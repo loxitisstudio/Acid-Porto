@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Project } from "@/lib/data";
 
@@ -77,6 +77,10 @@ export default function ProjectModal({
 }) {
   const [activeTab, setActiveTab] = useState("Overview");
 
+  // Referensi untuk sinkronisasi video dan audio terpisah
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
   useEffect(() => {
     if (!project) return;
 
@@ -116,7 +120,7 @@ export default function ProjectModal({
   const tabs = hasGallery ? ["Overview", "Gallery"] : ["Overview"];
   const modalTitleId = "project-modal-title";
   const modalDescriptionId = "project-modal-description";
-  const previewUrl = project.previewVideo?.trim();
+  const previewUrl = (project.previewVideo || project.videoUrl)?.trim();
   const previewType = previewUrl ? getVideoSourceType(previewUrl) : null;
   const embedUrl =
     previewType === "youtube"
@@ -124,6 +128,26 @@ export default function ProjectModal({
       : previewType === "vimeo"
       ? getVimeoEmbedUrl(previewUrl!)
       : previewUrl;
+
+  // Handler sinkronisasi pemutaran media
+  const handlePlay = () => {
+    if (audioRef.current && videoRef.current) {
+      audioRef.current.currentTime = videoRef.current.currentTime;
+      audioRef.current.play().catch(() => {});
+    }
+  };
+
+  const handlePause = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+  };
+
+  const handleSeeking = () => {
+    if (audioRef.current && videoRef.current) {
+      audioRef.current.currentTime = videoRef.current.currentTime;
+    }
+  };
 
   const renderOverviewContent = () => (
     <div className="space-y-6">
@@ -173,7 +197,28 @@ export default function ProjectModal({
 
     if (previewType === "direct") {
       return (
-        <video src={embedUrl ?? ""} controls className="h-full w-full object-cover" />
+        <div className="relative h-full w-full flex items-center justify-center bg-black">
+          {/* Video Utama (dimute agar suaranya tidak tabrakan/kosong) */}
+          <video
+            ref={videoRef}
+            src={embedUrl ?? ""}
+            controls
+            muted
+            onPlay={handlePlay}
+            onPause={handlePause}
+            onSeeking={handleSeeking}
+            className="h-full w-full object-cover"
+          />
+
+          {/* Audio Terpisah (jika ada data audioUrl di database) */}
+          {project.audioUrl && (
+            <audio
+              ref={audioRef}
+              src={project.audioUrl}
+              preload="auto"
+            />
+          )}
+        </div>
       );
     }
 
@@ -211,7 +256,6 @@ export default function ProjectModal({
             aria-labelledby={modalTitleId}
             aria-describedby={modalDescriptionId}
           >
-       
             <div className="relative h-[260px] overflow-hidden bg-black/10 md:h-full">
               {renderMedia()}
 

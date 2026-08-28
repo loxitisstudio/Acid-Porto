@@ -234,7 +234,14 @@ function FloatingImage({ src, alt, className, shadow, yRange = [0, -18, 0], rota
       transition={{ duration, repeat: Infinity, ease: "easeInOut" }}
       className={`absolute ${className}`}
     >
-      <Image src={src} alt={alt} fill className={`object-contain drop-shadow-[0_0_20px_${shadow}]`} priority />
+      <Image 
+  src={src} 
+  alt={alt} 
+  fill 
+  sizes="(max-width: 768px) 100vw, 350px"
+  className={`object-contain drop-shadow-[0_0_20px_${shadow}]`} 
+  priority 
+/>
     </motion.div>
   );
 }
