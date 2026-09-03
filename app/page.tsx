@@ -36,7 +36,7 @@ function LazySection({ children, minHeight }: { children: ReactNode; minHeight: 
   }, []);
 
   return (
-    <div ref={sectionRef} style={{ minHeight }}>
+    <div ref={sectionRef} style={{ minHeight: shouldRender ? undefined : minHeight }}>
       {shouldRender ? children : null}
     </div>
   );
