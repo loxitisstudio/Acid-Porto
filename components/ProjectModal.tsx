@@ -75,8 +75,6 @@ export default function ProjectModal({
   project: Project | null;
   onClose: () => void;
 }) {
-  const [activeTab, setActiveTab] = useState("Overview");
-
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -105,16 +103,8 @@ export default function ProjectModal({
     };
   }, [project, onClose]);
 
-  useEffect(() => {
-    if (!project?.gallery?.length && activeTab === "Gallery") {
-      setActiveTab("Overview");
-    }
-  }, [project?.gallery?.length, activeTab]);
-
   if (!project) return null;
 
-  const hasGallery = Boolean(project.gallery?.length);
-  const tabs = hasGallery ? ["Overview", "Gallery"] : ["Overview"];
   const modalTitleId = "project-modal-title";
   const modalDescriptionId = "project-modal-description";
   const previewUrl = (project.previewVideo || project.videoUrl)?.trim();
@@ -144,45 +134,6 @@ export default function ProjectModal({
       audioRef.current.currentTime = videoRef.current.currentTime;
     }
   };
-
-  const renderOverviewContent = () => (
-    <div className="space-y-4 sm:space-y-6">
-      <div>
-        {/* ✅ Title lebih kecil di mobile */}
-        <h3 id={modalTitleId} className="font-display text-[26px] leading-tight sm:text-[36px]">
-          {project.title}
-        </h3>
-        {/* ✅ Meta info wrap lebih baik di mobile */}
-        <div className="mt-3 sm:mt-4 flex flex-wrap gap-x-3 gap-y-1.5 sm:gap-x-4 sm:gap-y-2 text-[10px] sm:text-[12px] uppercase tracking-[0.08em] sm:tracking-[0.1em] text-ink-2/60">
-          <span>{project.year}</span>
-          <span className="hidden sm:inline">•</span>
-          <span>{project.role}</span>
-          <span className="hidden sm:inline">•</span>
-          <span>{project.category}</span>
-          <span className="hidden sm:inline">•</span>
-          <span>{project.software}</span>
-        </div>
-      </div>
-
-      {/* ✅ Teks sedikit lebih kecil di mobile */}
-      <p id={modalDescriptionId} className="text-[13px] leading-[1.75] sm:text-[14.5px] sm:leading-[1.8] text-ink-2">
-        {project.desc}
-      </p>
-    </div>
-  );
-
-  const renderGalleryContent = () => (
-    <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
-      {project.gallery?.map((src) => (
-        <div
-          key={src}
-          className="relative aspect-[4/3] overflow-hidden rounded-[14px] sm:rounded-[18px] border border-line bg-black/5"
-        >
-          <Image src={src} alt={`${project.title} gallery`} fill className="object-cover" sizes="(max-width: 640px) 100vw, 50vw" />
-        </div>
-      ))}
-    </div>
-  );
 
   const renderMedia = () => {
     if (previewType === "youtube" || previewType === "vimeo") {
@@ -236,76 +187,83 @@ export default function ProjectModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.4 }}
+          transition={{ duration: 0.3 }}
           onClick={onClose}
-          // ✅ Padding lebih kecil di mobile
-          className="fixed inset-0 z-[800] flex items-end sm:items-center justify-center overflow-hidden bg-bg/92 p-0 sm:p-[4vw] backdrop-blur-xl"
+          className="fixed inset-0 z-[800] flex items-end sm:items-center justify-center overflow-hidden bg-black/80 p-0 sm:p-6 backdrop-blur-md"
         >
           <motion.div
-            initial={{ opacity: 0, y: 40, scale: 0.98 }}
+            initial={{ opacity: 0, y: 30, scale: 0.99 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 40, scale: 0.98 }}
-            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+            exit={{ opacity: 0, y: 30, scale: 0.99 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
-            // ✅ Mobile: full height, rounded hanya di atas | Desktop: centered dengan rounded semua sisi
-            className="grid h-[100dvh] sm:h-[92vh] md:h-[86vh] w-full max-w-[1400px] md:max-w-[96vw] grid-cols-1 overflow-hidden rounded-t-[20px] sm:rounded-t-[20px] md:rounded-[20px] border-t border-line sm:border bg-bg-elev md:grid-cols-2"
+            className="grid h-[92vh] sm:h-[84vh] w-full max-w-[1250px] grid-cols-1 overflow-hidden rounded-t-[24px] sm:rounded-[24px] border border-zinc-800/80 bg-zinc-950 md:grid-cols-12 shadow-2xl"
             aria-labelledby={modalTitleId}
             aria-describedby={modalDescriptionId}
           >
-            {/* ✅ Media Container: aspect ratio di mobile, full height di desktop */}
-            <div className="relative aspect-[16/9] sm:aspect-auto sm:h-full overflow-hidden bg-black/10">
+            {/* ✅ Sisi Kiri: Media / Video (Lebih luas, misal 7 kolom dari 12) */}
+            <div className="relative md:col-span-7 h-[50vh] sm:h-[60vh] md:h-full overflow-hidden bg-black flex items-center justify-center">
               {renderMedia()}
-
+              
               <button
                 data-cursor-hover
                 onClick={onClose}
-                // ✅ Close button lebih kecil di mobile, posisi disesuaikan
-                className="absolute right-3 top-3 sm:right-6 sm:top-6 z-20 flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full border border-line-2 bg-bg/80 sm:bg-bg transition-colors hover:bg-glass"
+                className="absolute left-4 top-4 z-25 flex md:hidden h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition-colors"
               >
-                <span className="text-sm sm:text-base">✕</span>
+                <span className="text-sm">✕</span>
               </button>
             </div>
 
-            {/* ✅ Content area: scrollable di mobile jika konten panjang */}
-            <div className="flex h-auto sm:h-full min-h-0 flex-col overflow-y-auto sm:overflow-hidden p-5 sm:p-9 md:p-[54px]">
-              {/* ✅ Tabs */}
-              <div className="flex flex-shrink-0 flex-wrap gap-x-5 gap-y-2 sm:gap-x-6 sm:gap-y-3 border-b border-line pb-3">
-                {tabs.map((tab) => {
-                  const isActive = activeTab === tab;
-                  return (
-                    <button
-                      key={tab}
-                      onClick={() => setActiveTab(tab)}
-                      data-cursor-hover
-                      className={`relative pb-1.5 text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.08em] sm:tracking-[0.1em] transition-colors ${
-                        isActive ? "text-accent" : "text-ink-3 hover:text-ink"
-                      }`}
-                    >
-                      {tab}
-                      {isActive && (
-                        <motion.span
-                          layoutId="activeTabLine"
-                          className="absolute bottom-0 left-0 h-[1.5px] w-full bg-accent"
-                          transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                        />
-                      )}
-                    </button>
-                  );
-                })}
+            {/* ✅ Sisi Kanan: Informasi Project (Clean & Minimalist tanpa Tab berlebihan) */}
+            <div className="relative md:col-span-5 flex flex-col justify-between h-full p-6 sm:p-8 md:p-10 overflow-y-auto bg-zinc-950">
+              {/* Tombol Close Desktop */}
+              <div className="hidden md:flex justify-end">
+                <button
+                  data-cursor-hover
+                  onClick={onClose}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all border border-zinc-800"
+                >
+                  <span className="text-sm">✕</span>
+                </button>
               </div>
 
-              {/* ✅ Content dengan padding bawah untuk scroll yang nyaman */}
-              <div className="mt-4 sm:mt-6 flex-1 overflow-hidden pr-0 pb-4 sm:pb-0">
-                <motion.div
-                  key={activeTab}
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.35, ease: "easeOut" }}
-                >
-                  {activeTab === "Gallery" ? renderGalleryContent() : renderOverviewContent()}
-                </motion.div>
+              {/* Konten Utama */}
+              <div className="space-y-6 my-auto py-4">
+                <div>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-mono uppercase tracking-wider text-zinc-400 mb-2">
+                    <span>{project.year}</span>
+                    <span>•</span>
+                    <span>{project.role}</span>
+                    <span>•</span>
+                    <span className="text-zinc-200">{project.category}</span>
+                  </div>
+                  <h3 id={modalTitleId} className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-100">
+                    {project.title}
+                  </h3>
+                </div>
+
+                <p id={modalDescriptionId} className="text-sm sm:text-[15px] leading-relaxed text-zinc-400">
+                  {project.desc}
+                </p>
+
+                {project.software && (
+                  <div className="pt-2 border-t border-zinc-900">
+                    <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-400 block mb-1.5">
+                      Tools Used
+                    </span>
+                    <p className="text-xs sm:text-sm text-zinc-300 font-medium">
+                      {project.software}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Bagian bawah opsional (bisa dikosongkan atau ditaruh link eksternal jika ada) */}
+              <div className="pt-4 border-t border-zinc-900/60 text-[11px] text-zinc-400 font-mono flex justify-between items-center">
+                <span>LOXITIS STUDIO</span>
+                <span>PROJECT REVEAL</span>
               </div>
             </div>
           </motion.div>
