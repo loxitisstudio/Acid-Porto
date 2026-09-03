@@ -13,6 +13,7 @@
     "@studio-freight/lenis": "^1.0.42",
     "@supabase/ssr": "^0.12.5",
     "@supabase/supabase-js": "^2.112.4",
+    "cloudinary": "^2.11.0",
     "discord.js": "^14.27.0",
     "dotenv": "^17.4.2",
     "framer-motion": "^11.11.17",

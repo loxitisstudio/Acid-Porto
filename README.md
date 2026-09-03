@@ -11,6 +11,12 @@ npm run dev
 
 Open http://localhost:3000.
 
+## Dashboard media workflow
+
+The dashboard is available at `/dashboard` after logging in at `/login`. Media uploads go directly from the browser to Cloudinary, then the returned secure URL is stored in Supabase. This avoids sending large video files through a Vercel serverless function.
+
+Copy `.env.example` to `.env.local` and set `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET`. Add the same variables to the Vercel project settings before deploying. Keep `CLOUDINARY_API_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, and admin credentials server-only.
+
 ## Architecture
 
 ```

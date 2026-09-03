@@ -2,6 +2,29 @@ import { type Project } from "@/lib/data";
 
 const PROJECTS_API = "/api/projects";
 
+export async function uploadToCloudinary(file: File): Promise<string> {
+  const signatureResponse = await fetch("/api/cloudinary/signature", { cache: "no-store" });
+  const signature = await signatureResponse.json();
+  if (!signatureResponse.ok) throw new Error(signature.error || "Cloudinary belum siap.");
+
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("api_key", signature.apiKey);
+  formData.append("timestamp", String(signature.timestamp));
+  formData.append("folder", signature.folder);
+  formData.append("signature", signature.signature);
+
+  const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${signature.cloudName}/auto/upload`, {
+    method: "POST",
+    body: formData,
+  });
+  const payload = await uploadResponse.json();
+  if (!uploadResponse.ok || !payload.secure_url) {
+    throw new Error(payload.error?.message || "Upload Cloudinary gagal.");
+  }
+  return payload.secure_url as string;
+}
+
 async function parseProjectsResponse(response: Response): Promise<Project[]> {
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {

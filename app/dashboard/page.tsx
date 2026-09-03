@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { projects as initialProjects, Project } from "@/lib/data";
-import { createProject, deleteProject, getProjects, updateProject } from "@/lib/projectClient";
+import { createProject, deleteProject, getProjects, updateProject, uploadToCloudinary } from "@/lib/projectClient";
 import MediaUpload from "@/components/MediaUpload";
 
 const categories = [
@@ -38,6 +39,7 @@ const createProjectTemplate = (): Project => ({
 });
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<Tab>("General");
@@ -46,6 +48,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<Message>(null);
   const [extractStatus, setExtractStatus] = useState<{ type: "idle" | "extracting" | "success" | "error"; message: string }>({ type: "idle", message: "" });
+  const [authChecked, setAuthChecked] = useState(false);
 
   const current = projects[selectedIndex];
 
@@ -93,9 +96,16 @@ export default function DashboardPage() {
   );
 
   useEffect(() => {
-    async function fetchProjects() {
+    async function loadDashboard() {
       setLoading(true);
       try {
+        const sessionResponse = await fetch("/api/auth/session", { cache: "no-store" });
+        const session = await sessionResponse.json();
+        if (!session.authenticated) {
+          router.replace("/login");
+          return;
+        }
+
         const fresh = await getProjects();
         setProjects(fresh);
         setSelectedIndex(0);
@@ -103,12 +113,13 @@ export default function DashboardPage() {
       } catch (error) {
         setMessage("Unable to load projects.");
       } finally {
+        setAuthChecked(true);
         setLoading(false);
       }
     }
 
-    fetchProjects();
-  }, []);
+    loadDashboard();
+  }, [router]);
 
   const selectProject = (index: number) => {
     setSelectedIndex(index);
@@ -184,6 +195,12 @@ export default function DashboardPage() {
     }
   };
 
+  const logout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.replace("/login");
+    router.refresh();
+  };
+
   type UploadOptions = { action?: "append" | "replace"; replaceIndex?: number };
   const uploadMedia = async (
     files: File | FileList | null,
@@ -195,31 +212,19 @@ export default function DashboardPage() {
     const fileArray = files instanceof File ? [files] : Array.from(files);
     if (!fileArray.length) return;
 
-    const formData = new FormData();
-    formData.append("projectId", current.id);
-    formData.append("field", field);
-    fileArray.forEach((file) => formData.append("files", file));
-    if (options.action) formData.append("action", options.action);
-    if (typeof options.replaceIndex === "number") formData.append("replaceIndex", String(options.replaceIndex));
-
     try {
       setSaving(true);
-      const response = await fetch("/api/projects", {
-        method: "POST",
-        body: formData,
-      });
-
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error((payload as { error?: string }).error || "Upload failed");
-      }
-
-      const updated = (payload as { project?: Project; projects?: Project[] }).project ?? (payload as { project?: Project; projects?: Project[] }).projects?.[0];
-      if (!updated) {
-        throw new Error("No project returned from server");
-      }
-
-      setProjects((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+      const uploadedUrls = await Promise.all(fileArray.map(uploadToCloudinary));
+      const updated: Project = {
+        ...current,
+        [field]: field === "gallery"
+          ? options.action === "replace" && typeof options.replaceIndex === "number"
+            ? (current.gallery ?? []).map((url, index) => index === options.replaceIndex ? uploadedUrls[0] : url)
+            : [...(current.gallery ?? []), ...uploadedUrls]
+          : uploadedUrls[0],
+      };
+      const projectsFromApi = await updateProject(updated);
+      setProjects(projectsFromApi);
       setMessage("Media uploaded successfully.");
     } catch (error) {
       setMessage("Media upload failed.");
@@ -287,30 +292,13 @@ export default function DashboardPage() {
     const file = e.target.files?.[0];
     if (!file || !current) return;
 
-    const formData = new FormData();
-    formData.append("projectId", current.id);
-    formData.append("field", "previewVideo");
-    formData.append("files", file);
-    formData.append("action", "replace");
-
     setExtractStatus({ type: "extracting", message: `Mengupload ${file.name}...` });
 
     try {
-      const res = await fetch("/api/projects", {
-        method: "POST",
-        body: formData,
-      });
-
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.error || "Upload gagal");
-
-      const updated = payload.project ?? payload.projects?.[0];
-      if (updated) {
-        setProjects((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
-        setExtractStatus({ type: "success", message: `${file.name} berhasil diupload!` });
-      } else {
-        throw new Error("Tidak ada response dari server");
-      }
+      const url = await uploadToCloudinary(file);
+      const projectsFromApi = await updateProject({ ...current, previewVideo: url });
+      setProjects(projectsFromApi);
+      setExtractStatus({ type: "success", message: `${file.name} berhasil diupload!` });
     } catch {
       setExtractStatus({ type: "error", message: "Upload gagal" });
     }
@@ -350,6 +338,8 @@ export default function DashboardPage() {
 
   const status = current ? (current.thumbnail || current.previewVideo ? "Published" : "Draft") : "Draft";
   const lastUpdated = current ? new Date().toLocaleDateString() : "-";
+
+  if (!authChecked) return <div className="flex min-h-screen items-center justify-center bg-[#04080f] text-sm text-slate-400">Checking session...</div>;
 
   return (
     <div className="flex items-center justify-center bg-[#04080f] text-white" style={{ height: '100vh', padding: '18px 0' }}>
@@ -403,6 +393,7 @@ export default function DashboardPage() {
             </div>
             <div className="flex gap-2">
               <button onClick={refreshFromApi} className="rounded-md border border-slate-700 px-2 py-1.5 text-sm">Discard</button>
+              <button onClick={logout} className="rounded-md border border-slate-700 px-2 py-1.5 text-sm">Logout</button>
               <button onClick={saveToApi} disabled={!projects.length || saving} className="rounded-md border border-cyan-400 bg-cyan-400/10 px-3 py-1.5 text-sm font-semibold">{saving ? 'Saving…' : 'Save'}</button>
             </div>
           </div>
