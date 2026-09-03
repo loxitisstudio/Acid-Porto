@@ -449,7 +449,7 @@ export default function DashboardPage() {
                         </label>
                       </div>
 
-                      <div className="grid lg:grid-cols-2 gap-3">
+                      <div className="grid gap-3 lg:grid-cols-3">
                         <label className="text-sm">
                           <div className="text-slate-300 text-xs">Year</div>
                           <input value={current.year} onChange={(e) => updateProjectField('year', e.target.value)} className="w-full mt-1 rounded-md border border-slate-700 bg-[#06141f] px-2 py-1 text-sm" />
@@ -457,6 +457,10 @@ export default function DashboardPage() {
                         <label className="text-sm">
                           <div className="text-slate-300 text-xs">Role</div>
                           <input value={current.role} onChange={(e) => updateProjectField('role', e.target.value)} className="w-full mt-1 rounded-md border border-slate-700 bg-[#06141f] px-2 py-1 text-sm" />
+                        </label>
+                        <label className="text-sm">
+                          <div className="text-slate-300 text-xs">Software</div>
+                          <input value={current.software} onChange={(e) => updateProjectField('software', e.target.value)} placeholder="After Effects, Blender" className="w-full mt-1 rounded-md border border-slate-700 bg-[#06141f] px-2 py-1 text-sm" />
                         </label>
                       </div>
 
