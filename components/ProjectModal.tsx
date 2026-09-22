@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { useEffect, useState, useRef } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import { Project } from "@/lib/data";
 
 function isVideoUrl(url: string) {
@@ -181,25 +180,17 @@ export default function ProjectModal({
   };
 
   return (
-    <AnimatePresence>
+    <div>
       {project && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
+        <div
           onClick={onClose}
-          className="fixed inset-0 z-[800] flex items-end sm:items-center justify-center overflow-hidden bg-black/80 p-0 sm:p-6 backdrop-blur-md"
+          className="fixed inset-0 z-[800] flex animate-[modal-fade-in_300ms_ease-out] items-end justify-center overflow-hidden bg-black/80 p-0 backdrop-blur-md sm:items-center sm:p-6"
         >
-          <motion.div
-            initial={{ opacity: 0, y: 30, scale: 0.99 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 30, scale: 0.99 }}
-            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          <div
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
-            className="grid h-[92vh] sm:h-[84vh] w-full max-w-[1250px] grid-cols-1 overflow-hidden rounded-t-[24px] sm:rounded-[24px] border border-zinc-800/80 bg-zinc-950 md:grid-cols-12 shadow-2xl"
+            className="grid h-[92vh] w-full max-w-[1250px] animate-[modal-slide-in_400ms_cubic-bezier(0.16,1,0.3,1)] grid-cols-1 overflow-hidden rounded-t-[24px] border border-zinc-800/80 bg-zinc-950 shadow-2xl sm:h-[84vh] sm:rounded-[24px] md:grid-cols-12"
             aria-labelledby={modalTitleId}
             aria-describedby={modalDescriptionId}
           >
@@ -266,9 +257,9 @@ export default function ProjectModal({
                 <span>PROJECT REVEAL</span>
               </div>
             </div>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
       )}
-    </AnimatePresence>
+    </div>
   );
 }

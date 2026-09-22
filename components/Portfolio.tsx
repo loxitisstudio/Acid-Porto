@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import Reveal from "./Reveal";
 import ProjectModal from "./ProjectModal";
 import { type Project } from "@/lib/data";
@@ -110,11 +109,7 @@ export default function Portfolio() {
             }`}
           >
             {isSelected && (
-              <motion.span
-                layoutId="activeCategoryLine"
-                className="absolute left-0 top-0 bottom-0 w-[2px] bg-accent shadow-[0_0_10px_#00D9FF]"
-                transition={{ type: "spring", stiffness: 380, damping: 30 }}
-              />
+              <span className="absolute bottom-0 left-0 top-0 w-[2px] animate-[reveal-in_200ms_ease-out] bg-accent shadow-[0_0_10px_#00D9FF]" />
             )}
             {cat}
           </button>
@@ -127,16 +122,8 @@ export default function Portfolio() {
           {/* SISI KANAN: Grid 3 Kolom (Total 6 Project) */}
           <div className="w-full lg:w-[calc(100%-290px)] relative flex flex-col gap-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <AnimatePresence mode="popLayout">
                 {displayedProjects.map((project, i) => (
-                  <motion.div
-                    layout
-                    key={project.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.96 }}
-                    transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                  >
+                  <div key={project.id} className="animate-[reveal-in_400ms_ease-out_both]" style={{ animationDelay: `${i * 50}ms` }}>
                     <Reveal delay={i * 0.05}>
                       <button
                         data-cursor-hover
@@ -165,10 +152,8 @@ export default function Portfolio() {
                               )}
                             </>
                           ) : (
-                            <motion.div
-                              whileHover={{ scale: 1.05 }}
-                              transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-                              className="absolute inset-0 z-0"
+                            <div
+                              className="absolute inset-0 z-0 transition-transform duration-1000 ease-out group-hover:scale-105"
                               style={{ background: project.gradient }}
                             />
                           )}
@@ -201,9 +186,8 @@ export default function Portfolio() {
 
                       </button>
                     </Reveal>
-                  </motion.div>
+                  </div>
                 ))}
-              </AnimatePresence>
             </div>
 
             {/* Tombol View All Projects */}
