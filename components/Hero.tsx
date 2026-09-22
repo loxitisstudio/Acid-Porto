@@ -48,9 +48,10 @@ export default function Hero() {
           </defs>
 
           {/* ── GARIS 1 ── */}
-          <g>
+          <g className="hero-line-group hero-line-group-1">
             <path d="M-100,200 C300,50 400,600 700,300 C1000,0 1100,700 1540,400" stroke="#00D9FF" strokeWidth="1" opacity="0.12" />
             <path
+              className="hero-line-path hero-line-path-1"
               d="M-100,200 C300,50 400,600 700,300 C1000,0 1100,700 1540,400"
               stroke="url(#grad1)"
               strokeWidth="2"
@@ -61,9 +62,10 @@ export default function Hero() {
           </g>
 
           {/* ── GARIS 2 ── */}
-          <g>
+          <g className="hero-line-group hero-line-group-2">
             <path d="M200,-50 C100,400 900,200 600,700 C300,1200 1200,500 1600,800" stroke="#FFFFFF" strokeWidth="1" opacity="0.08" />
             <path
+              className="hero-line-path hero-line-path-2"
               d="M200,-50 C100,400 900,200 600,700 C300,1200 1200,500 1600,800"
               stroke="url(#grad2)"
               strokeWidth="1.8"
@@ -74,9 +76,10 @@ export default function Hero() {
           </g>
 
           {/* ── GARIS 3 ── */}
-          <g>
+          <g className="hero-line-group hero-line-group-3">
             <path d="M-50,600 C400,800 600,200 1000,500 C1400,800 1200,200 1500,-100" stroke="#00D9FF" strokeWidth="1" opacity="0.1" />
             <path
+              className="hero-line-path hero-line-path-3"
               d="M-50,600 C400,800 600,200 1000,500 C1400,800 1200,200 1500,-100"
               stroke="url(#grad1)"
               strokeWidth="2"
