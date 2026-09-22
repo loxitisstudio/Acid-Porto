@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Reveal from "./Reveal";
 import ConstellationCanvas from "./ConstellationCanvas";
+import HeroParallax from "./HeroParallax";
 
 export default function Hero() {
   return (
@@ -134,10 +135,11 @@ export default function Hero() {
         </div>
 
         {/* Sisi Kanan/Tengah — UNCHANGED */}
+        <HeroParallax>
         <div className="relative lg:col-span-8 h-[400px] md:h-[500px] w-full pointer-events-none flex items-center justify-center">
           
           {/* LAYER 1: Teks ACID */}
-          <div className="absolute inset-0 z-0 flex select-none items-center justify-center">
+          <div className="hero-parallax-acid absolute inset-0 z-0 flex select-none items-center justify-center">
             <h1 className="w-full select-none text-center font-sans text-[clamp(9rem,26vw,22rem)] font-thin uppercase leading-[0.8] tracking-[0.2em] text-ink">
               ACID
             </h1>
@@ -145,25 +147,26 @@ export default function Hero() {
 
           {/* LAYER 2: Objek 3D */}
           
-          <div className="absolute bottom-[2%] left-[8%] z-[1]">
+          <div className="hero-parallax-cube absolute bottom-[2%] left-[8%] z-[1]">
             <div className="relative h-[140px] w-[140px] md:h-[190px] md:w-[190px]">
               <Image src="/hero/cube.webp" alt="Cube" width={190} height={190} className="h-full w-full object-contain mix-blend-plus-lighter opacity-90 filter contrast-125 brightness-110" priority />
             </div>
           </div>
 
-          <div className="absolute right-[5%] top-[-5%] z-[1]">
+          <div className="hero-parallax-ring absolute right-[5%] top-[-5%] z-[1]">
             <div className="relative h-[150px] w-[150px] md:h-[210px] md:w-[210px]">
               <Image src="/hero/ring.webp" alt="Ring" width={210} height={210} className="h-full w-full object-contain mix-blend-plus-lighter opacity-90 filter contrast-125 brightness-110" priority />
             </div>
           </div>
 
-          <div className="absolute bottom-[-15%] right-[20%] z-[1]">
+          <div className="hero-parallax-sphere absolute bottom-[-15%] right-[20%] z-[1]">
             <div className="relative h-[80px] w-[80px] md:h-[110px] md:w-[110px]">
               <Image src="/hero/sphere.webp" alt="Sphere" width={110} height={110} className="h-full w-full object-contain mix-blend-plus-lighter opacity-90 filter contrast-125 brightness-110" priority />
             </div>
           </div>
 
         </div>
+        </HeroParallax>
       </div>
 
       {/* Footer / Scroll Indicator */}
