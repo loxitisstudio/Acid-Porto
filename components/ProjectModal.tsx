@@ -76,6 +76,7 @@ export default function ProjectModal({
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const [selectedGallery, setSelectedGallery] = useState<{ projectId: string; index: number } | null>(null);
 
   useEffect(() => {
     if (!project) return;
@@ -114,6 +115,9 @@ export default function ProjectModal({
       : previewType === "vimeo"
       ? getVimeoEmbedUrl(previewUrl!)
       : previewUrl;
+  const gallery = project.gallery?.filter((image) => image.trim()) ?? [];
+  const selectedGalleryImage =
+    selectedGallery?.projectId === project.id ? gallery[selectedGallery.index] : undefined;
 
   const handlePlay = () => {
     if (audioRef.current && videoRef.current) {
@@ -135,6 +139,20 @@ export default function ProjectModal({
   };
 
   const renderMedia = () => {
+    if (selectedGalleryImage) {
+      return (
+        <div className="relative h-full w-full">
+          <Image
+            src={selectedGalleryImage}
+            alt={`${project.title} gallery image`}
+            fill
+            className="object-contain"
+            sizes="(max-width: 768px) 100vw, 60vw"
+          />
+        </div>
+      );
+    }
+
     if (previewType === "youtube" || previewType === "vimeo") {
       return (
         <iframe
@@ -238,6 +256,54 @@ export default function ProjectModal({
                 <p id={modalDescriptionId} className="text-sm sm:text-[15px] leading-relaxed text-zinc-400">
                   {project.desc}
                 </p>
+
+                {gallery.length > 0 && (
+                  <div className="border-t border-zinc-900 pt-4">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-400">
+                        Gallery ({gallery.length})
+                      </span>
+                      {selectedGalleryImage && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedGallery(null)}
+                          className="text-[11px] text-cyan-300 transition-colors hover:text-cyan-200"
+                        >
+                          Show project preview
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                      {gallery.map((image, index) => {
+                        const isSelected =
+                          selectedGallery?.projectId === project.id && selectedGallery.index === index;
+
+                        return (
+                          <button
+                            key={`${image}-${index}`}
+                            type="button"
+                            onClick={() => setSelectedGallery({ projectId: project.id, index })}
+                            aria-label={`Show gallery image ${index + 1}`}
+                            aria-pressed={isSelected}
+                            className={`relative h-16 w-20 shrink-0 overflow-hidden rounded-md border transition-colors ${
+                              isSelected
+                                ? "border-cyan-300"
+                                : "border-zinc-800 hover:border-zinc-500"
+                            }`}
+                          >
+                            <Image
+                              src={image}
+                              alt=""
+                              fill
+                              className="object-cover"
+                              sizes="80px"
+                            />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 {project.software && (
                   <div className="pt-2 border-t border-zinc-900">
