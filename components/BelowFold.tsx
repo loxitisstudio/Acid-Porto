@@ -18,6 +18,9 @@ const Services = dynamic(() => import("@/components/Services"), {
 const Pricing = dynamic(() => import("@/components/Pricing"), {
   loading: () => <SectionFallback minHeight="36rem" />,
 });
+const Partner = dynamic(() => import("@/components/Partner"), {
+  loading: () => <SectionFallback minHeight="20rem" />,
+});
 const Footer = dynamic(() => import("@/components/Footer"), {
   loading: () => <SectionFallback minHeight="52rem" />,
 });
@@ -75,6 +78,7 @@ export default function BelowFold() {
       <LazySection minHeight="48rem"><Portfolio /></LazySection>
       <LazySection minHeight="42rem"><Services /></LazySection>
       <LazySection minHeight="36rem"><Pricing /></LazySection>
+      <LazySection minHeight="20rem"><Partner /></LazySection>
       <LazySection minHeight="52rem"><Footer /></LazySection>
     </>
   );

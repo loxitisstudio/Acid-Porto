@@ -16,6 +16,8 @@ export type Project = {
   videoUrl?: string;
   audioUrl?: string;
   gallery?: string[];
+  externalUrl?: string;
+  sortOrder?: number;
   concept?: string;
   process?: string;
   behindScenes?: string;

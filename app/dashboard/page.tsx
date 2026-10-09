@@ -3,8 +3,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { projects as initialProjects, Project } from "@/lib/data";
-import { createProject, deleteProject, getProjects, updateProject, uploadToCloudinary } from "@/lib/projectClient";
+import {
+  createProject,
+  deleteProject,
+  getProjects,
+  persistProjectOrder,
+  updateProject,
+  updateProjectExternalUrl,
+  uploadToCloudinary,
+} from "@/lib/projectClient";
 import MediaUpload from "@/components/MediaUpload";
+import { isValidExternalUrl, sanitizeExternalUrl } from "@/lib/projectUtils";
 
 const categories = [
   "MOTION GRAPHICS",
@@ -14,7 +23,7 @@ const categories = [
   "ROBLOX DEVELOPMENT",
 ];
 
-const tabs = ["General", "Media", "Content", "Settings"] as const;
+const tabs = ["General", "Media", "Content", "Links", "Settings"] as const;
 
 type Tab = (typeof tabs)[number];
 
@@ -47,6 +56,8 @@ export default function DashboardPage() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<Message>(null);
+  const [draggedProjectId, setDraggedProjectId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ projectId: string; position: "before" | "after" } | null>(null);
   const [extractStatus, setExtractStatus] = useState<{ type: "idle" | "extracting" | "success" | "error"; message: string }>({ type: "idle", message: "" });
   const [authChecked, setAuthChecked] = useState(false);
 
@@ -169,13 +180,39 @@ export default function DashboardPage() {
 
   const saveToApi = async () => {
     if (!current) return;
+    const enteredUrl = current.externalUrl?.trim() ?? "";
+    const externalUrl = enteredUrl ? sanitizeExternalUrl(enteredUrl) : "";
+    if (externalUrl && !isValidExternalUrl(externalUrl)) {
+      setMessage("Enter a valid HTTPS project URL before saving.");
+      return;
+    }
+
     try {
       setSaving(true);
-      const updated = await updateProject(current);
+      if (activeTab === "Links") {
+        const updated = await updateProjectExternalUrl(current.id, externalUrl);
+        const serverProjects = new Map(updated.map((project) => [project.id, project]));
+        setProjects((previous) =>
+          previous.map((project) => {
+            const serverProject = serverProjects.get(project.id);
+            return serverProject
+              ? { ...project, externalUrl: serverProject.externalUrl, sortOrder: serverProject.sortOrder }
+              : project;
+          })
+        );
+        setMessage("Project link saved successfully.");
+        return;
+      }
+
+      const projectToSave = {
+        ...current,
+        externalUrl,
+      };
+      const updated = await updateProject(projectToSave);
       setProjects(updated);
       setMessage("Project saved successfully.");
     } catch (error) {
-      setMessage("Failed to save project.");
+      setMessage(error instanceof Error ? `Failed to save project: ${error.message}` : "Failed to save project.");
     } finally {
       setSaving(false);
     }
@@ -192,6 +229,72 @@ export default function DashboardPage() {
       setMessage("Refresh failed.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const reorderProject = async (
+    sourceProjectId: string,
+    targetProjectId: string,
+    position: "before" | "after"
+  ) => {
+    if (saving || sourceProjectId === targetProjectId) return;
+
+    const visibleProjects = projects.filter((project) =>
+      project.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    const sourceIndex = visibleProjects.findIndex((project) => project.id === sourceProjectId);
+    const targetIndex = visibleProjects.findIndex((project) => project.id === targetProjectId);
+    if (sourceIndex < 0 || targetIndex < 0) return;
+
+    const reorderedVisible = [...visibleProjects];
+    const [moved] = reorderedVisible.splice(sourceIndex, 1);
+    let insertAt = targetIndex + (position === "after" ? 1 : 0);
+    if (sourceIndex < insertAt) insertAt -= 1;
+    reorderedVisible.splice(Math.max(0, Math.min(insertAt, reorderedVisible.length)), 0, moved);
+    if (reorderedVisible.every((project, index) => project.id === visibleProjects[index]?.id)) return;
+
+    const visibleIds = new Set(visibleProjects.map((project) => project.id));
+    let visibleIndex = 0;
+    const reordered = projects
+      .map((project) => (visibleIds.has(project.id) ? reorderedVisible[visibleIndex++] : project))
+      .map((project, index) => ({ ...project, sortOrder: index }));
+    const selectedId = current?.id;
+    const mergeServerOrder = (serverProjects: Project[]) => {
+      const localProjects = new Map(reordered.map((project) => [project.id, project]));
+      return serverProjects.map((serverProject) => ({
+        ...(localProjects.get(serverProject.id) ?? serverProject),
+        sortOrder: serverProject.sortOrder,
+      }));
+    };
+
+    setProjects(reordered);
+    setSelectedIndex(reordered.findIndex((project) => project.id === selectedId));
+    setSaving(true);
+    setMessage("Saving project order…");
+    try {
+      const persistedProjects = await persistProjectOrder(reordered);
+      const merged = mergeServerOrder(persistedProjects);
+      setProjects(merged);
+      setSelectedIndex(merged.findIndex((project) => project.id === selectedId));
+      setMessage("Project order saved.");
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "Unknown save error.";
+      try {
+        const latestProjects = await getProjects();
+        const merged = mergeServerOrder(latestProjects);
+        setProjects(merged);
+        setSelectedIndex(merged.findIndex((project) => project.id === selectedId));
+        setMessage(`Project order could not be saved: ${reason}`);
+      } catch (refreshError) {
+        setProjects(projects);
+        setSelectedIndex(projects.findIndex((project) => project.id === selectedId));
+        const refreshReason = refreshError instanceof Error ? refreshError.message : "refresh failed.";
+        setMessage(`Project order could not be saved: ${reason} Current order could not be confirmed: ${refreshReason}`);
+      }
+    } finally {
+      setSaving(false);
+      setDraggedProjectId(null);
+      setDropTarget(null);
     }
   };
 
@@ -345,7 +448,7 @@ export default function DashboardPage() {
     <div className="flex items-center justify-center bg-[#04080f] text-white" style={{ height: '100vh', padding: '18px 0' }}>
       <div className="w-full max-w-[1200px] mx-auto flex h-[calc(100vh-48px)] overflow-hidden rounded-lg border border-slate-800 bg-[#07121b]">
         {/* Sidebar */}
-        <div style={{ width: 272 }} className="hidden lg:flex flex-col border-r border-slate-800 bg-[#06111b]">
+        <div className="hidden w-[272px] min-w-0 max-w-[272px] shrink-0 flex-col border-r border-slate-800 bg-[#06111b] lg:flex">
           <div className="px-4 py-3 flex flex-col gap-2 border-b border-slate-800">
             <div>
               <div className="text-xs uppercase text-cyan-300/70">ACID</div>
@@ -357,23 +460,79 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-3">
+          <div className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-3">
             {loading ? (
               <div className="text-sm text-slate-400">Loading projects…</div>
             ) : filteredProjects.length ? (
-              <div className="space-y-2">
-                {filteredProjects.map((project, index) => {
-                  const sel = index === selectedIndex;
+              <div className="w-full min-w-0 max-w-full space-y-2">
+                {filteredProjects.map((project) => {
+                  const projectIndex = projects.findIndex((item) => item.id === project.id);
+                  const sel = project.id === current?.id;
                   return (
-                    <button key={project.id} onClick={() => selectProject(index)} className={`flex w-full items-center gap-3 rounded-md px-2 py-2 text-left ${sel ? 'bg-cyan-400/10 border border-cyan-400/20' : 'bg-[#08121f] border border-slate-800'}`}>
-                      <div className="h-9 w-9 rounded-sm bg-slate-900 overflow-hidden flex items-center justify-center">
-                        {project.thumbnail ? <img src={project.thumbnail} alt="" className="h-full w-full object-cover" /> : <div className="text-[10px] text-slate-500">No</div>}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold">{project.title}</div>
-                        <div className="truncate text-xs text-slate-400">{project.category}</div>
-                      </div>
-                    </button>
+                    <div
+                      key={project.id}
+                      onDragOver={(event) => {
+                        event.preventDefault();
+                        if (!draggedProjectId || draggedProjectId === project.id) return;
+                        const bounds = event.currentTarget.getBoundingClientRect();
+                        setDropTarget({
+                          projectId: project.id,
+                          position: event.clientY < bounds.top + bounds.height / 2 ? "before" : "after",
+                        });
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        const bounds = event.currentTarget.getBoundingClientRect();
+                        const position = event.clientY < bounds.top + bounds.height / 2 ? "before" : "after";
+                        const sourceId = event.dataTransfer.getData("text/plain") || draggedProjectId;
+                        if (sourceId) void reorderProject(sourceId, project.id, position);
+                      }}
+                      className={`relative box-border flex w-full min-w-0 max-w-full items-center gap-2 rounded-md border p-1 transition-colors ${
+                        sel ? "border-cyan-400/30 bg-cyan-400/10" : "border-slate-800 bg-[#08121f]"
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => selectProject(projectIndex)}
+                        aria-pressed={sel}
+                        className="flex min-w-0 flex-1 items-center gap-3 rounded px-1 py-2 text-left"
+                      >
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-sm bg-slate-900">
+                          {project.thumbnail ? <img src={project.thumbnail} alt="" className="h-full w-full object-cover" /> : <div className="text-[10px] text-slate-500">No</div>}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-semibold">{project.title}</div>
+                          <div className="truncate text-xs text-slate-400">{project.category}</div>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        draggable={!saving}
+                        aria-label={`Drag to reorder ${project.title}`}
+                        title="Drag to reorder"
+                        onDragStart={(event) => {
+                          setDraggedProjectId(project.id);
+                          event.dataTransfer.effectAllowed = "move";
+                          event.dataTransfer.setData("text/plain", project.id);
+                        }}
+                        onDragEnd={() => {
+                          setDraggedProjectId(null);
+                          setDropTarget(null);
+                        }}
+                        className="flex h-9 w-8 shrink-0 cursor-grab items-center justify-center rounded border border-slate-700 text-lg leading-none text-slate-300 active:cursor-grabbing"
+                      >
+                        ⋮⋮
+                      </button>
+                      {dropTarget?.projectId === project.id && (
+                        <span
+                          aria-hidden="true"
+                          className={`pointer-events-none absolute left-1 right-1 z-10 h-0.5 rounded bg-cyan-300 shadow-[0_0_8px_rgba(103,232,249,0.8)] ${
+                            dropTarget.position === "before" ? "-top-1" : "-bottom-1"
+                          }`}
+                        />
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -385,7 +544,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Editor */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800 bg-[#07121b]">
             <div>
               <p className="text-xs text-slate-500">Portfolio dashboard</p>
@@ -613,6 +772,51 @@ export default function DashboardPage() {
                     <div className="grid gap-3">
                       <label className="text-sm"><div className="text-xs text-slate-300">Concept</div><textarea value={current.concept ?? ''} onChange={(e)=>updateProjectField('concept', e.target.value)} rows={4} className="w-full mt-1 rounded-md border border-slate-700 bg-[#06141f] px-2 py-1 text-sm"/></label>
                       <label className="text-sm"><div className="text-xs text-slate-300">Process</div><textarea value={current.process ?? ''} onChange={(e)=>updateProjectField('process', e.target.value)} rows={4} className="w-full mt-1 rounded-md border border-slate-700 bg-[#06141f] px-2 py-1 text-sm"/></label>
+                    </div>
+                  )}
+
+                  {activeTab === 'Links' && (
+                    <div className="grid gap-3">
+                      <label className="text-sm">
+                        <div className="text-xs text-slate-300">External Project URL</div>
+                        <input
+                          value={current.externalUrl ?? ""}
+                          onChange={(e) => updateProjectField("externalUrl", e.target.value)}
+                          placeholder="https://youtube.com/watch?v=..."
+                          inputMode="url"
+                          aria-invalid={Boolean(current.externalUrl?.trim()) && !isValidExternalUrl(sanitizeExternalUrl(current.externalUrl))}
+                          className="w-full mt-1 rounded-md border border-slate-700 bg-[#06141f] px-2 py-1 text-sm"
+                        />
+                      </label>
+
+                      {current.externalUrl && (
+                        <div className="rounded-md border border-slate-800 bg-[#07141b] p-3">
+                          <div className="mb-2 text-[10px] font-mono uppercase tracking-[0.2em] text-slate-400">URL validation</div>
+                          {isValidExternalUrl(sanitizeExternalUrl(current.externalUrl)) ? (
+                            <div className="flex items-center gap-2 text-sm text-emerald-300">
+                              <span>✓</span>
+                              <span>Valid HTTPS destination. The project URL is saved independently from other project fields.</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 text-sm text-red-300">
+                              <span>!</span>
+                              <span>Enter a valid HTTPS URL for the project destination.</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="rounded-md border border-slate-800 p-3 text-sm text-slate-400">
+                        Preview: {current.externalUrl && isValidExternalUrl(sanitizeExternalUrl(current.externalUrl)) ? (
+                          <a href={sanitizeExternalUrl(current.externalUrl)} target="_blank" rel="noopener noreferrer" className="ml-2 text-cyan-300 underline break-all">
+                            {sanitizeExternalUrl(current.externalUrl)}
+                          </a>
+                        ) : current.externalUrl ? (
+                          <span className="ml-2 break-all text-red-300">{current.externalUrl}</span>
+                        ) : (
+                          <span className="ml-2 text-slate-500">No external URL set</span>
+                        )}
+                      </div>
                     </div>
                   )}
 

@@ -77,6 +77,7 @@ export default function ProjectModal({
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [selectedGallery, setSelectedGallery] = useState<{ projectId: string; index: number } | null>(null);
+  const [failedMedia, setFailedMedia] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!project) return;
@@ -116,8 +117,19 @@ export default function ProjectModal({
       ? getVimeoEmbedUrl(previewUrl!)
       : previewUrl;
   const gallery = project.gallery?.filter((image) => image.trim()) ?? [];
-  const selectedGalleryImage =
-    selectedGallery?.projectId === project.id ? gallery[selectedGallery.index] : undefined;
+  const selectedGalleryIndex = selectedGallery?.projectId === project.id ? selectedGallery.index : -1;
+  const selectedGalleryMedia = selectedGalleryIndex >= 0 ? gallery[selectedGalleryIndex] : undefined;
+  const selectedMediaKey = selectedGalleryMedia
+    ? `${project.id}:gallery:${selectedGalleryIndex}:${selectedGalleryMedia}`
+    : `${project.id}:preview:${previewUrl ?? project.thumbnail ?? ""}`;
+  const selectedMediaUrl = selectedGalleryMedia ?? previewUrl ?? project.thumbnail ?? "";
+  const selectedMediaType = getVideoSourceType(selectedMediaUrl);
+  const selectedMediaEmbedUrl =
+    selectedMediaType === "youtube"
+      ? getYouTubeEmbedUrl(selectedMediaUrl)
+      : selectedMediaType === "vimeo"
+        ? getVimeoEmbedUrl(selectedMediaUrl)
+        : selectedMediaUrl;
 
   const handlePlay = () => {
     if (audioRef.current && videoRef.current) {
@@ -139,15 +151,55 @@ export default function ProjectModal({
   };
 
   const renderMedia = () => {
-    if (selectedGalleryImage) {
+    if (failedMedia[selectedMediaKey]) {
+      return (
+        <div className="flex h-full w-full items-center justify-center bg-zinc-950 px-6 text-center text-sm text-zinc-400">
+          This media could not be loaded.
+        </div>
+      );
+    }
+
+    if (selectedGalleryMedia && (selectedMediaType === "youtube" || selectedMediaType === "vimeo")) {
+      return (
+        <iframe
+          src={selectedMediaEmbedUrl}
+          title={`${project.title} gallery video`}
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowFullScreen
+          onError={() => setFailedMedia((current) => ({ ...current, [selectedMediaKey]: true }))}
+          className="h-full w-full"
+        />
+      );
+    }
+
+    if (selectedGalleryMedia && selectedMediaType === "direct") {
+      return (
+        <video
+          key={selectedMediaKey}
+          ref={videoRef}
+          src={selectedMediaEmbedUrl}
+          controls
+          muted
+          playsInline
+          onError={() => setFailedMedia((current) => ({ ...current, [selectedMediaKey]: true }))}
+          onPlay={handlePlay}
+          onPause={handlePause}
+          onSeeking={handleSeeking}
+          className="h-full w-full bg-black object-contain"
+        />
+      );
+    }
+
+    if (selectedGalleryMedia) {
       return (
         <div className="relative h-full w-full">
           <Image
-            src={selectedGalleryImage}
+            src={selectedGalleryMedia}
             alt={`${project.title} gallery image`}
             fill
-            className="object-contain"
+            className="object-cover"
             sizes="(max-width: 768px) 100vw, 60vw"
+            onError={() => setFailedMedia((current) => ({ ...current, [selectedMediaKey]: true }))}
           />
         </div>
       );
@@ -160,7 +212,8 @@ export default function ProjectModal({
           title={project.title}
           allow="autoplay; fullscreen; picture-in-picture"
           allowFullScreen
-          className="h-full w-full object-cover"
+          onError={() => setFailedMedia((current) => ({ ...current, [selectedMediaKey]: true }))}
+          className="h-full w-full"
         />
       );
     }
@@ -177,11 +230,10 @@ export default function ProjectModal({
             onPlay={handlePlay}
             onPause={handlePause}
             onSeeking={handleSeeking}
+            onError={() => setFailedMedia((current) => ({ ...current, [selectedMediaKey]: true }))}
             className="h-full w-full object-cover"
           />
-          {project.audioUrl && (
-            <audio ref={audioRef} src={project.audioUrl} preload="auto" />
-          )}
+          {project.audioUrl && <audio ref={audioRef} src={project.audioUrl} preload="auto" />}
         </div>
       );
     }
@@ -189,7 +241,14 @@ export default function ProjectModal({
     if (project.thumbnail) {
       return (
         <div className="relative h-full w-full">
-          <Image src={project.thumbnail} alt={project.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" />
+          <Image
+            src={project.thumbnail}
+            alt={project.title}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 50vw"
+            onError={() => setFailedMedia((current) => ({ ...current, [selectedMediaKey]: true }))}
+          />
         </div>
       );
     }
@@ -212,115 +271,156 @@ export default function ProjectModal({
             aria-labelledby={modalTitleId}
             aria-describedby={modalDescriptionId}
           >
-            {/* ✅ Sisi Kiri: Media / Video (Lebih luas, misal 7 kolom dari 12) */}
-            <div className="relative md:col-span-7 h-[50vh] sm:h-[60vh] md:h-full overflow-hidden bg-black flex items-center justify-center">
-              {renderMedia()}
-              
-              <button
-                data-cursor-hover
-                onClick={onClose}
-                className="absolute left-4 top-4 z-25 flex md:hidden h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition-colors"
-              >
-                <span className="text-sm">✕</span>
-              </button>
-            </div>
+            <div className="flex h-[46vh] min-h-0 flex-col overflow-hidden bg-black md:col-span-7 md:h-full">
+              <div className="relative min-h-0 flex-1 overflow-hidden">
+                {renderMedia()}
 
-            {/* ✅ Sisi Kanan: Informasi Project (Clean & Minimalist tanpa Tab berlebihan) */}
-            <div className="relative md:col-span-5 flex flex-col justify-between h-full p-6 sm:p-8 md:p-10 overflow-y-auto bg-zinc-950">
-              {/* Tombol Close Desktop */}
-              <div className="hidden md:flex justify-end">
-                <button
-                  data-cursor-hover
-                  onClick={onClose}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all border border-zinc-800"
-                >
-                  <span className="text-sm">✕</span>
-                </button>
+                <div className="absolute inset-x-0 top-0 flex items-center justify-between p-4 sm:p-5">
+                  <div className="rounded-full border border-white/10 bg-black/35 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.24em] text-zinc-200 backdrop-blur-sm">
+                    {project.category}
+                  </div>
+                  <button
+                    data-cursor-hover
+                    onClick={onClose}
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-black/40 text-sm text-zinc-200 backdrop-blur-sm transition-colors hover:bg-white/10"
+                    aria-label="Close project modal"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
 
-              {/* Konten Utama */}
-              <div className="space-y-6 my-auto py-4">
-                <div>
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-mono uppercase tracking-wider text-zinc-400 mb-2">
-                    <span>{project.year}</span>
-                    <span>•</span>
-                    <span>{project.role}</span>
-                    <span>•</span>
-                    <span className="text-zinc-200">{project.category}</span>
-                  </div>
-                  <h3 id={modalTitleId} className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-100">
-                    {project.title}
-                  </h3>
-                </div>
+              {gallery.length > 0 && (
+                <div className="shrink-0 border-t border-white/10 bg-zinc-950/90 px-4 py-3">
+                  <div className="flex min-w-0 gap-3 overflow-x-auto overscroll-x-contain pb-1">
+                    {gallery.map((media, index) => {
+                      const isSelected = selectedGalleryIndex === index;
+                      const mediaType = getVideoSourceType(media);
+                      const thumbnailKey = `${project.id}:gallery:${index}:${media}`;
+                      const thumbnailEmbedUrl =
+                        mediaType === "youtube"
+                          ? getYouTubeEmbedUrl(media)
+                          : mediaType === "vimeo"
+                            ? getVimeoEmbedUrl(media)
+                            : media;
 
-                <p id={modalDescriptionId} className="text-sm sm:text-[15px] leading-relaxed text-zinc-400">
-                  {project.desc}
-                </p>
-
-                {gallery.length > 0 && (
-                  <div className="border-t border-zinc-900 pt-4">
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-400">
-                        Gallery ({gallery.length})
-                      </span>
-                      {selectedGalleryImage && (
+                      return (
                         <button
+                          key={`${media}-${index}`}
                           type="button"
-                          onClick={() => setSelectedGallery(null)}
-                          className="text-[11px] text-cyan-300 transition-colors hover:text-cyan-200"
+                          onClick={() => setSelectedGallery({ projectId: project.id, index })}
+                          aria-label={`Show gallery media ${index + 1}`}
+                          aria-pressed={isSelected}
+                          className={`relative aspect-video h-14 w-24 shrink-0 overflow-hidden rounded-lg border bg-zinc-900 transition-colors sm:h-16 sm:w-28 lg:h-[72px] lg:w-32 ${
+                            isSelected ? "border-cyan-300 shadow-[0_0_0_1px_rgba(103,232,249,0.35)]" : "border-zinc-700/80 hover:border-zinc-500"
+                          }`}
                         >
-                          Show project preview
-                        </button>
-                      )}
-                    </div>
-                    <div className="flex gap-2 overflow-x-auto pb-1">
-                      {gallery.map((image, index) => {
-                        const isSelected =
-                          selectedGallery?.projectId === project.id && selectedGallery.index === index;
-
-                        return (
-                          <button
-                            key={`${image}-${index}`}
-                            type="button"
-                            onClick={() => setSelectedGallery({ projectId: project.id, index })}
-                            aria-label={`Show gallery image ${index + 1}`}
-                            aria-pressed={isSelected}
-                            className={`relative h-16 w-20 shrink-0 overflow-hidden rounded-md border transition-colors ${
-                              isSelected
-                                ? "border-cyan-300"
-                                : "border-zinc-800 hover:border-zinc-500"
-                            }`}
-                          >
+                          {failedMedia[thumbnailKey] ? (
+                            <span className="flex h-full w-full items-center justify-center text-[10px] text-zinc-500">Unavailable</span>
+                          ) : mediaType === "direct" ? (
+                            <video
+                              src={media}
+                              muted
+                              playsInline
+                              preload="metadata"
+                              onError={() => setFailedMedia((current) => ({ ...current, [thumbnailKey]: true }))}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : mediaType === "youtube" || mediaType === "vimeo" ? (
+                            <span className="flex h-full w-full items-center justify-center text-lg text-zinc-200" aria-hidden="true">▶</span>
+                          ) : (
                             <Image
-                              src={image}
+                              src={media}
                               alt=""
                               fill
                               className="object-cover"
-                              sizes="80px"
+                              sizes="(max-width: 640px) 96px, (max-width: 1024px) 112px, 128px"
+                              onError={() => setFailedMedia((current) => ({ ...current, [thumbnailKey]: true }))}
                             />
-                          </button>
-                        );
-                      })}
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="relative flex h-full flex-col justify-between overflow-y-auto bg-zinc-950 p-6 sm:p-8 md:col-span-5 md:p-9">
+              <div className="space-y-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-mono uppercase tracking-[0.2em] text-zinc-400">
+                      <span>{project.year}</span>
+                      <span>•</span>
+                      <span>{project.role}</span>
                     </div>
+                    <h3 id={modalTitleId} className="text-2xl font-semibold tracking-tight text-zinc-50 sm:text-3xl">
+                      {project.title}
+                    </h3>
+                  </div>
+                </div>
+
+                <p id={modalDescriptionId} className="text-sm leading-relaxed text-zinc-300 sm:text-[15px]">
+                  {project.desc}
+                </p>
+
+                <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4">
+                  <p className="mb-2 text-[10px] font-mono uppercase tracking-[0.2em] text-zinc-500">Project details</p>
+                  <div className="space-y-3 text-sm text-zinc-300">
+                    {project.software && (
+                      <div>
+                        <span className="block text-[10px] font-mono uppercase tracking-[0.2em] text-zinc-500">Tools</span>
+                        <span className="mt-1 block text-zinc-200">{project.software}</span>
+                      </div>
+                    )}
+                    {project.externalUrl && (
+                      <div>
+                        <span className="block text-[10px] font-mono uppercase tracking-[0.2em] text-zinc-500">External link</span>
+                        <a
+                          href={project.externalUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-1 inline-flex items-center gap-2 text-cyan-300 transition-colors hover:text-cyan-200"
+                        >
+                          {project.externalUrl.replace(/^https?:\/\//i, "")}
+                          <span aria-hidden="true">↗</span>
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {project.concept && (
+                  <div className="space-y-2 border-t border-zinc-800 pt-4">
+                    <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-zinc-500">Concept</span>
+                    <p className="text-sm leading-relaxed text-zinc-300">{project.concept}</p>
                   </div>
                 )}
 
-                {project.software && (
-                  <div className="pt-2 border-t border-zinc-900">
-                    <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-400 block mb-1.5">
-                      Tools Used
-                    </span>
-                    <p className="text-xs sm:text-sm text-zinc-300 font-medium">
-                      {project.software}
-                    </p>
+                {project.process && (
+                  <div className="space-y-2 border-t border-zinc-800 pt-4">
+                    <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-zinc-500">Process</span>
+                    <p className="text-sm leading-relaxed text-zinc-300">{project.process}</p>
                   </div>
                 )}
               </div>
 
-              {/* Bagian bawah opsional (bisa dikosongkan atau ditaruh link eksternal jika ada) */}
-              <div className="pt-4 border-t border-zinc-900/60 text-[11px] text-zinc-400 font-mono flex justify-between items-center">
-                <span>LOXITIS STUDIO</span>
-                <span>PROJECT REVEAL</span>
+              <div className="mt-6 flex flex-col gap-3 border-t border-zinc-800 pt-4">
+                {project.externalUrl && (
+                  <a
+                    href={project.externalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center rounded-full border border-cyan-400/40 bg-cyan-400/10 px-4 py-2.5 text-sm font-medium text-cyan-200 transition-colors hover:border-cyan-300 hover:bg-cyan-400/20"
+                  >
+                    View Project
+                  </a>
+                )}
+                <div className="flex items-center justify-between text-[11px] font-mono uppercase tracking-[0.2em] text-zinc-500">
+                  <span>LOXITIS STUDIO</span>
+                  <span>PROJECT REVEAL</span>
+                </div>
               </div>
             </div>
           </div>

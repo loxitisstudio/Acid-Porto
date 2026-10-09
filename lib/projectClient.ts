@@ -67,6 +67,29 @@ export async function updateProject(project: Project): Promise<Project[]> {
   return parseProjectsResponse(response);
 }
 
+export async function updateProjectExternalUrl(projectId: string, externalUrl: string): Promise<Project[]> {
+  const response = await fetch(PROJECTS_API, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "updateExternalUrl", projectId, externalUrl }),
+  });
+
+  return parseProjectsResponse(response);
+}
+
+export async function persistProjectOrder(projects: Project[]): Promise<Project[]> {
+  const response = await fetch(PROJECTS_API, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "reorder",
+      orders: projects.map((project, sortOrder) => ({ id: project.id, sortOrder })),
+    }),
+  });
+
+  return parseProjectsResponse(response);
+}
+
 export async function deleteProject(projectId: string): Promise<Project[]> {
   const response = await fetch(`${PROJECTS_API}?projectId=${encodeURIComponent(projectId)}`, {
     method: "DELETE",
