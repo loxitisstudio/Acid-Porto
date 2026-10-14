@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { createPortal } from "react-dom";
 import { useEffect, useState, useRef } from "react";
 import { Project } from "@/lib/data";
 
@@ -104,7 +105,7 @@ export default function ProjectModal({
     };
   }, [project, onClose]);
 
-  if (!project) return null;
+  if (!project || typeof document === "undefined") return null;
 
   const modalTitleId = "project-modal-title";
   const modalDescriptionId = "project-modal-description";
@@ -256,22 +257,20 @@ export default function ProjectModal({
     return <div className="absolute inset-0" style={{ background: project.gradient }} />;
   };
 
-  return (
-    <div>
-      {project && (
-        <div
-          onClick={onClose}
-          className="fixed inset-0 z-[800] flex animate-[modal-fade-in_300ms_ease-out] items-end justify-center overflow-hidden bg-black/80 p-0 backdrop-blur-md sm:items-center sm:p-6"
-        >
+  return createPortal(
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-[800] flex h-screen w-screen animate-[modal-fade-in_300ms_ease-out] items-center justify-center overflow-hidden bg-black/80 p-3 backdrop-blur-md sm:p-6"
+    >
           <div
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
-            className="grid h-[92vh] w-full max-w-[1250px] animate-[modal-slide-in_400ms_cubic-bezier(0.16,1,0.3,1)] grid-cols-1 overflow-hidden rounded-t-[24px] border border-zinc-800/80 bg-zinc-950 shadow-2xl sm:h-[84vh] sm:rounded-[24px] md:grid-cols-12"
+            className="grid h-[90vh] max-h-[90vh] w-full max-w-[1250px] animate-[modal-slide-in_400ms_cubic-bezier(0.16,1,0.3,1)] grid-cols-1 grid-rows-[minmax(0,46vh)_minmax(0,1fr)] overflow-hidden rounded-[24px] border border-zinc-800/80 bg-zinc-950 shadow-2xl md:grid-cols-12 md:grid-rows-1"
             aria-labelledby={modalTitleId}
             aria-describedby={modalDescriptionId}
           >
-            <div className="flex h-[46vh] min-h-0 flex-col overflow-hidden bg-black md:col-span-7 md:h-full">
+            <div className="flex h-[46vh] min-h-0 min-w-0 flex-col overflow-hidden bg-black md:col-span-7 md:h-full">
               <div className="relative min-h-0 flex-1 overflow-hidden">
                 {renderMedia()}
 
@@ -346,45 +345,45 @@ export default function ProjectModal({
               )}
             </div>
 
-            <div className="relative flex h-full flex-col justify-between overflow-y-auto bg-zinc-950 p-6 sm:p-8 md:col-span-5 md:p-9">
-              <div className="space-y-6">
+            <div className="relative flex h-full min-h-0 min-w-0 w-full flex-col justify-between overflow-x-hidden overflow-y-auto bg-zinc-950 p-6 sm:p-8 md:col-span-5 md:p-9">
+              <div className="w-full min-w-0 space-y-6">
                 <div className="flex items-start justify-between gap-4">
-                  <div>
+                  <div className="min-w-0">
                     <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-mono uppercase tracking-[0.2em] text-zinc-400">
                       <span>{project.year}</span>
                       <span>•</span>
                       <span>{project.role}</span>
                     </div>
-                    <h3 id={modalTitleId} className="text-2xl font-semibold tracking-tight text-zinc-50 sm:text-3xl">
+                    <h3 id={modalTitleId} className="break-words text-2xl font-semibold tracking-tight text-zinc-50 sm:text-3xl">
                       {project.title}
                     </h3>
                   </div>
                 </div>
 
-                <p id={modalDescriptionId} className="text-sm leading-relaxed text-zinc-300 sm:text-[15px]">
+                <p id={modalDescriptionId} className="w-full max-w-full min-w-0 overflow-hidden break-words text-sm leading-relaxed text-zinc-300 sm:text-[15px]">
                   {project.desc}
                 </p>
 
-                <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4">
+                <div className="w-full max-w-full min-w-0 overflow-hidden break-words rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4">
                   <p className="mb-2 text-[10px] font-mono uppercase tracking-[0.2em] text-zinc-500">Project details</p>
-                  <div className="space-y-3 text-sm text-zinc-300">
+                  <div className="w-full min-w-0 space-y-3 overflow-hidden break-words text-sm text-zinc-300">
                     {project.software && (
-                      <div>
+                      <div className="min-w-0">
                         <span className="block text-[10px] font-mono uppercase tracking-[0.2em] text-zinc-500">Tools</span>
                         <span className="mt-1 block text-zinc-200">{project.software}</span>
                       </div>
                     )}
                     {project.externalUrl && (
-                      <div>
+                      <div className="min-w-0">
                         <span className="block text-[10px] font-mono uppercase tracking-[0.2em] text-zinc-500">External link</span>
                         <a
                           href={project.externalUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="mt-1 inline-flex items-center gap-2 text-cyan-300 transition-colors hover:text-cyan-200"
+                          className="mt-1 flex w-full max-w-full min-w-0 items-start gap-2 break-all text-cyan-300 transition-colors hover:text-cyan-200"
                         >
-                          {project.externalUrl.replace(/^https?:\/\//i, "")}
-                          <span aria-hidden="true">↗</span>
+                          <span className="min-w-0 break-all">{project.externalUrl.replace(/^https?:\/\//i, "")}</span>
+                          <span aria-hidden="true" className="shrink-0">↗</span>
                         </a>
                       </div>
                     )}
@@ -403,7 +402,12 @@ export default function ProjectModal({
                                     {collaborator.name.slice(0, 1).toUpperCase()}
                                   </span>
                                 )}
-                                <span>{collaborator.name}</span>
+                                <span className="flex min-w-0 flex-col">
+                                  <span>{collaborator.name}</span>
+                                  {collaborator.role?.trim() && (
+                                    <span className="text-[10px] text-zinc-500">{collaborator.role}</span>
+                                  )}
+                                </span>
                                 {hasSafeLink && <span aria-hidden="true" className="text-cyan-300">↗</span>}
                               </>
                             );
@@ -462,8 +466,7 @@ export default function ProjectModal({
               </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+    </div>,
+    document.body
   );
 }

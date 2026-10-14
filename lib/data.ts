@@ -5,6 +5,7 @@
 export type Collaborator = {
   name: string;
   link: string;
+  role?: string;
   photo?: string;
 };
 

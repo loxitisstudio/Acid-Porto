@@ -841,7 +841,7 @@ export default function DashboardPage() {
 
                       <div className="grid gap-3">
                         {(current.collaborators ?? []).map((collaborator, index) => (
-                          <div key={`${current.id}-collaborator-${index}`} className="grid gap-3 rounded-md border border-slate-800 p-3 md:grid-cols-[1fr_1fr_auto]">
+                          <div key={`${current.id}-collaborator-${index}`} className="grid gap-3 rounded-md border border-slate-800 p-3 md:grid-cols-[1fr_1fr_1fr_auto]">
                             <label className="text-sm">
                               <span className="text-xs text-slate-300">Name</span>
                               <input
@@ -867,6 +867,19 @@ export default function DashboardPage() {
                                 className="mt-1 w-full rounded-md border border-slate-700 bg-[#06141f] px-2 py-2 text-sm"
                                 placeholder="https://..."
                                 inputMode="url"
+                              />
+                            </label>
+                            <label className="text-sm">
+                              <span className="text-xs text-slate-300">Role</span>
+                              <input
+                                value={collaborator.role ?? ""}
+                                onChange={(event) => {
+                                  const updated = [...(current.collaborators ?? [])];
+                                  updated[index] = { ...updated[index], role: event.target.value };
+                                  updateCollaborators(updated);
+                                }}
+                                className="mt-1 w-full rounded-md border border-slate-700 bg-[#06141f] px-2 py-2 text-sm"
+                                placeholder="e.g. Designer"
                               />
                             </label>
                             <div className="flex items-end gap-2">
@@ -901,7 +914,7 @@ export default function DashboardPage() {
 
                       <button
                         type="button"
-                        onClick={() => updateCollaborators([...(current.collaborators ?? []), { name: "", link: "" }])}
+                        onClick={() => updateCollaborators([...(current.collaborators ?? []), { name: "", link: "", role: "" }])}
                         className="w-fit rounded-md border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-sm font-semibold text-cyan-200"
                       >
                         Add collaborator
