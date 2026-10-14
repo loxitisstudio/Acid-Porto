@@ -94,7 +94,7 @@ export async function PUT(request: Request) {
     if (error) throw error;
     return NextResponse.json({ projects: await getAllProjects() });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Failed to update project." }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(error, "Failed to update project.") }, { status: 500 });
   }
 }
 
