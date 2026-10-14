@@ -38,23 +38,23 @@ const oswald = Oswald({
 export const metadata: Metadata = {
   metadataBase: new URL("https://loxitis-studio.vercel.app"),
   title: {
-    default: "ACID — Creative Developer & Motion Designer",
-    template: "%s | ACID",
+    default: "௹ Tυαɳ Mυԃα Eʅ — Creator, Developer & System Architect",
+    template: "%s | Tuan Muda El",
   },
   description:
-    "Explore ACID's portfolio of cinematic motion graphics, video editing, 3D renders, design, and creative development.",
-  applicationName: "ACID",
-  authors: [{ name: "ACID" }],
-  creator: "ACID",
-  publisher: "ACID",
+    "Selamat datang di portfolio Tuan Muda El. Creator, Developer & System Architect yang mengubah kompleksitas abstrak menjadi sistem terukur. Eksplorasi project, artikel, dan pengalaman profesional.",
+  applicationName: "Tuan Muda El",
+  authors: [{ name: "Tuan Muda El" }],
+  creator: "Tuan Muda El",
+  publisher: "Tuan Muda El",
   keywords: [
-    "ACID",
+    "Tuan Muda El",
+    "portfolio developer",
+    "system architect indonesia",
+    "software engineer portfolio",
+    "web developer jakarta",
     "creative developer",
-    "motion designer",
-    "motion graphics",
-    "video editing",
-    "3D rendering",
-    "digital portfolio",
+    "fullstack developer indonesia",
   ],
   alternates: {
     canonical: "/",
@@ -62,25 +62,24 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: "/",
-    siteName: "ACID",
-    title: "ACID — Creative Developer & Motion Designer",
+    siteName: "Tuan Muda El",
+    title: "௹ Tυαɳ Mυԃα Eʅ — Portfolio & Creative Works",
     description:
-      "Cinematic motion graphics, video editing, 3D renders, design, and interactive digital experiences by ACID.",
-    locale: "en_US",
+      "Eksplorasi karya kreatif, proyek teknologi, dan pemikiran mendalam tentang system architecture dan software engineering.",
+    locale: "id_ID",
     images: [
       {
         url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "ACID — Creative Developer & Motion Designer",
+        alt: "Tuan Muda El - Home Portfolio",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "ACID — Creative Developer & Motion Designer",
-    description:
-      "Cinematic motion graphics, video editing, 3D renders, design, and interactive digital experiences by ACID.",
+    title: "௹ Tυαɳ Mυԃα Eʅ — Portfolio",
+    description: "Creator, Developer & System Architect. Explore my works →",
     images: ["/opengraph-image"],
   },
   robots: {
@@ -105,7 +104,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${display.variable} ${body.variable} ${oswald.variable}`}>
+    <html lang="id" className={`${display.variable} ${body.variable} ${oswald.variable}`}>
       <body>
         <Cursor />
         <SmoothScroll>{children}</SmoothScroll>
