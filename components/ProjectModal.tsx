@@ -388,6 +388,44 @@ export default function ProjectModal({
                         </a>
                       </div>
                     )}
+                    {project.collaborators && project.collaborators.length > 0 && (
+                      <div>
+                        <span className="block text-[10px] font-mono uppercase tracking-[0.2em] text-zinc-500">Collaborators</span>
+                        <div className="mt-2 flex flex-wrap gap-3">
+                          {project.collaborators.filter((collaborator) => collaborator.name.trim()).map((collaborator, index) => {
+                            const hasSafeLink = /^https?:\/\//i.test(collaborator.link);
+                            const content = (
+                              <>
+                                {collaborator.photo ? (
+                                  <img src={collaborator.photo} alt="" className="h-9 w-9 rounded-full object-cover" />
+                                ) : (
+                                  <span aria-hidden="true" className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800 text-xs font-semibold text-zinc-300">
+                                    {collaborator.name.slice(0, 1).toUpperCase()}
+                                  </span>
+                                )}
+                                <span>{collaborator.name}</span>
+                                {hasSafeLink && <span aria-hidden="true" className="text-cyan-300">↗</span>}
+                              </>
+                            );
+                            return hasSafeLink ? (
+                              <a
+                                key={`${collaborator.name}-${index}`}
+                                href={collaborator.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs text-zinc-200 transition-colors hover:border-cyan-400/50"
+                              >
+                                {content}
+                              </a>
+                            ) : (
+                              <span key={`${collaborator.name}-${index}`} className="inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-950 px-2 py-1 text-xs text-zinc-200">
+                                {content}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 

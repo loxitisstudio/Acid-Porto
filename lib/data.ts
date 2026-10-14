@@ -2,6 +2,12 @@
 // The old Skill type and skills array have been removed.
 // Tool information is now embedded in each Service entry below.
 
+export type Collaborator = {
+  name: string;
+  link: string;
+  photo?: string;
+};
+
 export type Project = {
   id: string;
   title: string;
@@ -16,6 +22,7 @@ export type Project = {
   videoUrl?: string;
   audioUrl?: string;
   gallery?: string[];
+  collaborators?: Collaborator[];
   externalUrl?: string;
   sortOrder?: number;
   concept?: string;

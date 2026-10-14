@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { projects as initialProjects, Project } from "@/lib/data";
+import { projects as initialProjects, Collaborator, Project } from "@/lib/data";
 import {
   createProject,
   deleteProject,
@@ -23,7 +23,7 @@ const categories = [
   "ROBLOX DEVELOPMENT",
 ];
 
-const tabs = ["General", "Media", "Content", "Links", "Settings"] as const;
+const tabs = ["General", "Media", "Content", "Collaborators", "Links", "Settings"] as const;
 
 type Tab = (typeof tabs)[number];
 
@@ -41,6 +41,7 @@ const createProjectTemplate = (): Project => ({
   thumbnail: "",
   previewVideo: "",
   gallery: [],
+  collaborators: [],
   concept: "",
   process: "",
   behindScenes: "",
@@ -105,6 +106,19 @@ export default function DashboardPage() {
         .filter((project) => project.title.toLowerCase().includes(searchQuery.toLowerCase())),
     [projects, searchQuery]
   );
+  const collaboratorTemplates = useMemo(() => {
+    const templates = new Map<string, Collaborator>();
+    for (const project of projects) {
+      for (const collaborator of project.collaborators ?? []) {
+        const name = collaborator.name?.trim();
+        if (!name) continue;
+        const link = collaborator.link?.trim() ?? "";
+        const key = link.toLowerCase() || name.toLowerCase();
+        if (!templates.has(key)) templates.set(key, { ...collaborator, name, link });
+      }
+    }
+    return [...templates.values()];
+  }, [projects]);
 
   useEffect(() => {
     async function loadDashboard() {
@@ -158,6 +172,33 @@ export default function DashboardPage() {
     if (!current) return;
     const updated: Project = { ...current, [key]: value };
     setProjects((prev) => prev.map((item, index) => (index === selectedIndex ? updated : item)));
+  };
+
+  const updateCollaborators = (collaborators: Collaborator[]) => {
+    if (!current) return;
+    setProjects((prev) => prev.map((project) =>
+      project.id === current.id ? { ...project, collaborators } : project
+    ));
+  };
+
+  const uploadCollaboratorPhoto = async (index: number, file?: File) => {
+    if (!current || !file) return;
+    try {
+      setSaving(true);
+      const photo = await uploadToCloudinary(file);
+      setProjects((prev) => prev.map((project) => {
+        if (project.id !== current.id) return project;
+        const collaborators = [...(project.collaborators ?? [])];
+        if (!collaborators[index]) return project;
+        collaborators[index] = { ...collaborators[index], photo };
+        return { ...project, collaborators };
+      }));
+      setMessage("Collaborator photo uploaded. Save changes to keep it.");
+    } catch (error) {
+      setMessage(error instanceof Error ? `Collaborator photo upload failed: ${error.message}` : "Collaborator photo upload failed.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const removeProject = async () => {
@@ -569,7 +610,7 @@ export default function DashboardPage() {
                       </div>
                       <div className="text-xs text-slate-400 mt-1">ID: {current.id} • Updated: {lastUpdated}</div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center justify-end gap-2">
                       {tabs.map((t) => <button key={t} onClick={() => setActiveTab(t)} className={`rounded-md px-2 py-1 text-sm ${activeTab===t? 'bg-cyan-400 text-black':'bg-[#061418] text-slate-300'}`}>{t}</button>)}
                     </div>
                   </div>
@@ -772,6 +813,100 @@ export default function DashboardPage() {
                     <div className="grid gap-3">
                       <label className="text-sm"><div className="text-xs text-slate-300">Concept</div><textarea value={current.concept ?? ''} onChange={(e)=>updateProjectField('concept', e.target.value)} rows={4} className="w-full mt-1 rounded-md border border-slate-700 bg-[#06141f] px-2 py-1 text-sm"/></label>
                       <label className="text-sm"><div className="text-xs text-slate-300">Process</div><textarea value={current.process ?? ''} onChange={(e)=>updateProjectField('process', e.target.value)} rows={4} className="w-full mt-1 rounded-md border border-slate-700 bg-[#06141f] px-2 py-1 text-sm"/></label>
+                    </div>
+                  )}
+
+                  {activeTab === 'Collaborators' && (
+                    <div className="grid gap-4">
+                      <div>
+                        <label className="mb-2 block text-xs text-slate-300" htmlFor="collaborator-template">Reuse a saved collaborator</label>
+                        <select
+                          id="collaborator-template"
+                          value=""
+                          onChange={(event) => {
+                            const template = collaboratorTemplates[Number(event.target.value)];
+                            if (template) updateCollaborators([...(current.collaborators ?? []), { ...template }]);
+                          }}
+                          className="w-full rounded-md border border-slate-700 bg-[#06141f] px-2 py-2 text-sm"
+                        >
+                          <option value="">Choose a collaborator template…</option>
+                          {collaboratorTemplates.map((collaborator, index) => (
+                            <option key={`${collaborator.link}-${collaborator.name}-${index}`} value={index}>
+                              {collaborator.name}{collaborator.link ? ` — ${collaborator.link}` : ""}
+                            </option>
+                          ))}
+                        </select>
+                        <p className="mt-1 text-xs text-slate-500">Templates are collected from collaborators already saved on projects.</p>
+                      </div>
+
+                      <div className="grid gap-3">
+                        {(current.collaborators ?? []).map((collaborator, index) => (
+                          <div key={`${current.id}-collaborator-${index}`} className="grid gap-3 rounded-md border border-slate-800 p-3 md:grid-cols-[1fr_1fr_auto]">
+                            <label className="text-sm">
+                              <span className="text-xs text-slate-300">Name</span>
+                              <input
+                                value={collaborator.name}
+                                onChange={(event) => {
+                                  const updated = [...(current.collaborators ?? [])];
+                                  updated[index] = { ...updated[index], name: event.target.value };
+                                  updateCollaborators(updated);
+                                }}
+                                className="mt-1 w-full rounded-md border border-slate-700 bg-[#06141f] px-2 py-2 text-sm"
+                                placeholder="Collaborator name"
+                              />
+                            </label>
+                            <label className="text-sm">
+                              <span className="text-xs text-slate-300">Link</span>
+                              <input
+                                value={collaborator.link}
+                                onChange={(event) => {
+                                  const updated = [...(current.collaborators ?? [])];
+                                  updated[index] = { ...updated[index], link: event.target.value };
+                                  updateCollaborators(updated);
+                                }}
+                                className="mt-1 w-full rounded-md border border-slate-700 bg-[#06141f] px-2 py-2 text-sm"
+                                placeholder="https://..."
+                                inputMode="url"
+                              />
+                            </label>
+                            <div className="flex items-end gap-2">
+                              {collaborator.photo && (
+                                <img src={collaborator.photo} alt={`${collaborator.name || "Collaborator"} profile`} className="h-10 w-10 rounded-full object-cover" />
+                              )}
+                              <label className="cursor-pointer rounded-md border border-slate-700 px-3 py-2 text-sm text-slate-200">
+                                {collaborator.photo ? "Change photo" : "Add photo"}
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  disabled={saving}
+                                  onChange={(event) => {
+                                    void uploadCollaboratorPhoto(index, event.target.files?.[0]);
+                                    event.target.value = "";
+                                  }}
+                                />
+                              </label>
+                              <button
+                                type="button"
+                                disabled={saving}
+                                onClick={() => updateCollaborators((current.collaborators ?? []).filter((_, itemIndex) => itemIndex !== index))}
+                                className="rounded-md border border-red-500/40 px-3 py-2 text-sm text-red-300 disabled:opacity-50"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => updateCollaborators([...(current.collaborators ?? []), { name: "", link: "" }])}
+                        className="w-fit rounded-md border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-sm font-semibold text-cyan-200"
+                      >
+                        Add collaborator
+                      </button>
+                      <p className="text-xs text-slate-500">Save the project to store collaborator details and make them available as templates on other projects.</p>
                     </div>
                   )}
 
