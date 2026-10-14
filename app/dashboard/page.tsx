@@ -30,7 +30,7 @@ type Tab = (typeof tabs)[number];
 type Message = string | null;
 
 const createProjectTemplate = (): Project => ({
-  id: `new-project-${Date.now()}`,
+  id: crypto.randomUUID(),
   title: "New Project",
   category: categories[0],
   year: "2026",
@@ -148,7 +148,7 @@ export default function DashboardPage() {
       setSelectedIndex(nextIndex >= 0 ? nextIndex : 0);
       setMessage("New project created.");
     } catch (error) {
-      setMessage("Failed to create project.");
+      setMessage(error instanceof Error ? `Failed to create project: ${error.message}` : "Failed to create project.");
     } finally {
       setSaving(false);
     }
@@ -455,7 +455,7 @@ export default function DashboardPage() {
               <h1 className="mt-1 text-lg font-semibold">Admin</h1>
             </div>
             <div className="flex gap-2">
-              <button onClick={addProject} className="rounded-md border border-cyan-400/20 bg-cyan-400/10 px-2 py-1.5 text-sm font-semibold text-cyan-100">New</button>
+              <button onClick={addProject} disabled={saving || loading} className="rounded-md border border-cyan-400/20 bg-cyan-400/10 px-2 py-1.5 text-sm font-semibold text-cyan-100 disabled:cursor-not-allowed disabled:opacity-50">New</button>
               <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search" className="flex-1 rounded-md border border-slate-700 bg-[#0b1724] px-2 py-1.5 text-sm text-white outline-none" />
             </div>
           </div>
