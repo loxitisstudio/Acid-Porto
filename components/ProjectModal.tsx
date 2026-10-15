@@ -134,11 +134,9 @@ export default function ProjectModal({
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const galleryBaseRef = useRef<HTMLDivElement>(null);
-  const detailsColumnRef = useRef<HTMLElement>(null);
   const [portalReady, setPortalReady] = useState(false);
   const [selectedGallery, setSelectedGallery] = useState<SelectedGalleryItem>(null);
   const [failedMedia, setFailedMedia] = useState<Record<string, boolean>>({});
-  const [stackedGalleryCount, setStackedGalleryCount] = useState(0);
   const gallery = project?.gallery?.filter((item) => item.trim()) ?? [];
   const selectedIndex = project && selectedGallery?.projectId === project.id
     ? selectedGallery.index
@@ -155,6 +153,7 @@ export default function ProjectModal({
     const originalHtmlOverflow = document.documentElement.style.overflow;
     document.body.style.overflow = "hidden";
     document.documentElement.style.overflow = "hidden";
+    window.dispatchEvent(new Event("project-modal:open"));
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -167,6 +166,7 @@ export default function ProjectModal({
     return () => {
       document.body.style.overflow = originalBodyOverflow;
       document.documentElement.style.overflow = originalHtmlOverflow;
+      window.dispatchEvent(new Event("project-modal:close"));
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [project, onClose]);
@@ -174,44 +174,7 @@ export default function ProjectModal({
   useEffect(() => {
     setSelectedGallery(null);
     setFailedMedia({});
-    setStackedGalleryCount(0);
   }, [project?.id]);
-
-  useEffect(() => {
-    const galleryBase = galleryBaseRef.current;
-    const detailsColumn = detailsColumnRef.current;
-    if (!galleryBase || !detailsColumn || gallery.length < 2) {
-      setStackedGalleryCount(0);
-      return;
-    }
-
-    const updateStackedGallery = () => {
-      if (!window.matchMedia("(min-width: 768px)").matches) {
-        setStackedGalleryCount(0);
-        return;
-      }
-
-      const heightDifference = detailsColumn.scrollHeight - galleryBase.offsetHeight;
-      const availableAssets = gallery.length - (selectedIndex >= 0 ? 1 : 0);
-      const mediaHeight = (galleryBase.clientWidth * 9) / 16 + 16;
-      const neededAssets = heightDifference > 180
-        ? Math.ceil(heightDifference / mediaHeight)
-        : 0;
-
-      setStackedGalleryCount(Math.min(availableAssets, neededAssets));
-    };
-
-    const observer = new ResizeObserver(updateStackedGallery);
-    observer.observe(galleryBase);
-    observer.observe(detailsColumn);
-    window.addEventListener("resize", updateStackedGallery);
-    updateStackedGallery();
-
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", updateStackedGallery);
-    };
-  }, [portalReady, project?.id, gallery.length, selectedIndex]);
 
   if (!project || !portalReady) return null;
 
@@ -300,68 +263,6 @@ export default function ProjectModal({
         className="aspect-video w-full bg-zinc-950"
         style={{ background: project.gradient || "#09090b" }}
       />
-    );
-  };
-
-  const stackedGallery = gallery
-    .map((url, index) => ({ url, index }))
-    .filter(({ index }) => index !== selectedIndex)
-    .slice(0, stackedGalleryCount);
-
-  const renderStackedMedia = (url: string, index: number) => {
-    const key = `${project.id}:gallery:${index}:${url}`;
-    const source = getVideoSource(url);
-    const embedUrl = source === "youtube"
-      ? getYouTubeEmbedUrl(url)
-      : source === "vimeo"
-        ? getVimeoEmbedUrl(url)
-        : null;
-
-    if (failedMedia[key]) {
-      return (
-        <div className="flex aspect-video items-center justify-center bg-zinc-950 text-sm text-zinc-500">
-          This media could not be loaded.
-        </div>
-      );
-    }
-
-    if (source === "direct") {
-      return (
-        <video
-          src={url}
-          controls
-          muted
-          playsInline
-          onError={() => setFailedMedia((current) => ({ ...current, [key]: true }))}
-          className="aspect-video w-full bg-black object-contain"
-        />
-      );
-    }
-
-    if (embedUrl) {
-      return (
-        <iframe
-          src={embedUrl}
-          title={`${project.title} gallery item ${index + 1}`}
-          allow="autoplay; fullscreen; picture-in-picture"
-          allowFullScreen
-          onError={() => setFailedMedia((current) => ({ ...current, [key]: true }))}
-          className="aspect-video w-full bg-black"
-        />
-      );
-    }
-
-    return (
-      <div className="relative aspect-video w-full bg-zinc-950">
-        <Image
-          src={url}
-          alt={`${project.title} gallery item ${index + 1}`}
-          fill
-          sizes="(max-width: 768px) 100vw, 60vw"
-          className="object-contain"
-          onError={() => setFailedMedia((current) => ({ ...current, [key]: true }))}
-        />
-      </div>
     );
   };
 
@@ -455,22 +356,9 @@ export default function ProjectModal({
               )}
             </div>
 
-            {stackedGallery.length > 0 && (
-              <div className="space-y-3 border-t border-white/10 bg-black p-3 sm:p-4">
-                {stackedGallery.map(({ url, index }) => (
-                  <div
-                    key={`${project.id}:stacked-gallery:${index}`}
-                    className="overflow-hidden rounded-xl border border-white/10 bg-zinc-950"
-                  >
-                    {renderStackedMedia(url, index)}
-                  </div>
-                ))}
-              </div>
-            )}
           </section>
 
           <section
-            ref={detailsColumnRef}
             className="flex min-w-0 flex-col break-words p-5 text-zinc-300 sm:p-8 md:col-span-5"
           >
             <div className="min-w-0 flex-1 space-y-6">
