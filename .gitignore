@@ -7,8 +7,10 @@ node_modules/
 out/
 
 # Uploaded media assets (kept local only)
-public/media/
-public/media/projects/
+public/media/*
+!public/media/projects/
+public/media/projects/*
+!public/media/projects/el.png
 acid-nextjs/public/media/
 acid-nextjs/public/media/projects/
 
