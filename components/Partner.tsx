@@ -26,7 +26,7 @@ export default function Partner() {
           <span className="flex min-w-0 items-center gap-5 sm:gap-7">
             <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border border-line-2 bg-bg transition-colors duration-300 group-hover:border-accent/60 sm:h-20 sm:w-20">
               <Image
-                src="/media/projects/elportrait.png"
+                src="public/media/projects/elportrait.png"
                 alt="Tuan Muda El"
                 fill
                 sizes="80px"
