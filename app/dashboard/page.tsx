@@ -67,17 +67,20 @@ export default function DashboardPage() {
   const getYouTubeId = (url: string) => {
     try {
       const parsed = new URL(url);
-      const host = parsed.hostname.toLowerCase();
-      if (host.includes("youtu.be")) {
-        return parsed.pathname.slice(1) || null;
+      const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
+      if (host === "youtu.be") {
+        const id = parsed.pathname.split("/").filter(Boolean)[0];
+        return id && /^[\w-]{11}$/.test(id) ? id : null;
       }
-      if (host.includes("youtube.com")) {
+      if (host === "youtube.com" || host.endsWith(".youtube.com")) {
         const id = parsed.searchParams.get("v");
-        if (id) return id;
+        if (id && /^[\w-]{11}$/.test(id)) return id;
         const match = parsed.pathname.match(/\/embed\/([^/?]+)/);
-        if (match) return match[1];
+        if (match && /^[\w-]{11}$/.test(match[1])) return match[1];
         const shortsMatch = parsed.pathname.match(/\/shorts\/([^/?]+)/);
-        if (shortsMatch) return shortsMatch[1];
+        if (shortsMatch && /^[\w-]{11}$/.test(shortsMatch[1])) return shortsMatch[1];
+        const liveMatch = parsed.pathname.match(/\/live\/([^/?]+)/);
+        if (liveMatch && /^[\w-]{11}$/.test(liveMatch[1])) return liveMatch[1];
       }
     } catch {
       return null;
@@ -88,10 +91,35 @@ export default function DashboardPage() {
   const getVimeoId = (url: string) => {
     try {
       const parsed = new URL(url);
-      const host = parsed.hostname.toLowerCase();
-      if (!host.includes("vimeo.com")) return null;
+      const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
+      if (host !== "vimeo.com" && !host.endsWith(".vimeo.com")) return null;
       const match = parsed.pathname.match(/\/(?:video\/|channels\/[\w-]+\/|groups\/[\w-]+\/videos\/)?(\d+)/);
       return match ? match[1] : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const getTikTokId = (url: string) => {
+    try {
+      const parsed = new URL(url);
+      const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
+      if (host !== "tiktok.com" && !host.endsWith(".tiktok.com")) return null;
+      return parsed.pathname.match(/\/(?:@[^/]+\/video\/|embed\/v2\/)(\d+)/)?.[1] ?? null;
+    } catch {
+      return null;
+    }
+  };
+
+  const getInstagramEmbedUrl = (url: string) => {
+    try {
+      const parsed = new URL(url);
+      const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
+      if (host !== "instagram.com" && !host.endsWith(".instagram.com")) return null;
+      const match = parsed.pathname.match(/^\/(p|reel|reels|tv)\/([A-Za-z0-9_-]+)/);
+      if (!match) return null;
+      const [, type, shortcode] = match;
+      return `https://www.instagram.com/${type}/${encodeURIComponent(shortcode)}/embed`;
     } catch {
       return null;
     }
@@ -378,48 +406,42 @@ export default function DashboardPage() {
   };
 
   const extractVideo = async (url: string) => {
-    const isInstagram = /instagram\.com\/(p|reel|reels|tv)\//.test(url);
     const isMp4 = /\.(mp4|mov|webm)(?:\?|$)/i.test(url);
 
     if (isMp4) {
       updateProjectField("previewVideo", url);
-      setExtractStatus({ type: "success", message: "Direct MP4 terdeteksi" });
+      setExtractStatus({ type: "success", message: "Video URL siap dipreview" });
       setTimeout(() => setExtractStatus({ type: "idle", message: "" }), 3000);
       return;
     }
 
-    if (!isInstagram) {
-      setExtractStatus({ type: "error", message: "Hanya link Instagram yang bisa auto-extract" });
+    if (getYouTubeId(url) || getTikTokId(url) || getInstagramEmbedUrl(url)) {
+      updateProjectField("previewVideo", url);
+      setExtractStatus({ type: "success", message: "Link platform siap dipreview" });
+      setTimeout(() => setExtractStatus({ type: "idle", message: "" }), 3000);
+      return;
+    }
+
+    if (getVimeoId(url)) {
+      updateProjectField("previewVideo", url);
+      setExtractStatus({ type: "success", message: "Link Vimeo siap dipreview" });
+      setTimeout(() => setExtractStatus({ type: "idle", message: "" }), 3000);
+      return;
+    }
+
+    if (!url.trim()) {
+      setExtractStatus({ type: "error", message: "Masukkan URL video terlebih dahulu." });
       setTimeout(() => setExtractStatus({ type: "idle", message: "" }), 4000);
       return;
     }
 
-    setExtractStatus({ type: "extracting", message: "Mengekstrak video Instagram..." });
-
-        try {
-      const res = await fetch("/api/extract-video", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
-      });
-      const data = await res.json();
-
-      if (data.needsManual && data.toolUrl) {
-        window.open(data.toolUrl, "_blank");
-        setExtractStatus({
-          type: "error",
-          message: "Tab baru terbuka — download videonya, lalu paste URL MP4-nya di kolom ini",
-        });
-      } else if (data.success && data.mp4Url) {
-        updateProjectField("previewVideo", data.mp4Url);
-        setExtractStatus({ type: "success", message: "Video berhasil di-extract!" });
-      } else {
-        setExtractStatus({ type: "error", message: data.message || "Gagal extract" });
-      }
-    } catch {
-      setExtractStatus({ type: "error", message: "Gagal menghubungi server" });
+    if (!url.startsWith("https://") && !url.startsWith("http://")) {
+      setExtractStatus({ type: "error", message: "Masukkan URL video yang valid." });
+      setTimeout(() => setExtractStatus({ type: "idle", message: "" }), 4000);
+      return;
     }
 
+    setExtractStatus({ type: "error", message: "Link ini tidak didukung. Gunakan YouTube, TikTok, Instagram, Vimeo, atau URL video langsung." });
     setTimeout(() => setExtractStatus({ type: "idle", message: "" }), 4000);
   };
 
@@ -688,7 +710,7 @@ export default function DashboardPage() {
                         <div className="rounded-xl border border-slate-800 bg-[#07131d] p-3">
                           <div className="mb-2">
                             <div className="text-sm font-semibold text-slate-100">Preview Video URL</div>
-                            <div className="text-xs text-slate-400">Use a public URL for YouTube, Vimeo, MP4, MOV, WebM, Cloudinary, Supabase, or other video sources.</div>
+                            <div className="text-xs text-slate-400">YouTube, TikTok, and Instagram links use their platform embeds. Upload MP4, MOV, or WebM files to Cloudinary.</div>
                           </div>
 
                                                     <div className="flex gap-2">
@@ -697,7 +719,7 @@ export default function DashboardPage() {
                               onChange={(e) => updateProjectField("previewVideo", e.target.value)}
                               onPaste={handleVideoPaste}
                               onKeyDown={handleVideoKeyDown}
-                              placeholder="Paste link Instagram atau URL MP4..."
+                              placeholder="Paste link YouTube, TikTok, Instagram, Vimeo, atau URL video..."
                               className="flex-1 rounded-md border border-slate-700 bg-[#06141f] px-3 py-2 text-sm text-white outline-none"
                             />
                             <button
@@ -711,7 +733,7 @@ export default function DashboardPage() {
                               ) : (
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                               )}
-                              Extract
+                              Load Preview
                             </button>
                           </div>
 
@@ -744,7 +766,7 @@ export default function DashboardPage() {
                                 onChange={handleVideoUpload}
                               />
                             </label>
-                            <span className="text-xs text-slate-500">Download dari IG, lalu upload di sini</span>
+                            <span className="text-xs text-slate-500">Upload video milikmu atau yang kamu punya izin untuk digunakan.</span>
                           </div>
 
                           <div className="mt-4 overflow-hidden rounded-xl border border-slate-800 bg-slate-950">
@@ -763,6 +785,22 @@ export default function DashboardPage() {
                                   title="Vimeo preview"
                                   allow="fullscreen; picture-in-picture"
                                   className="h-48 w-full"
+                                />
+                              ) : getTikTokId(current.previewVideo) ? (
+                                <iframe
+                                  src={`https://www.tiktok.com/player/v1/${getTikTokId(current.previewVideo)}?description=1`}
+                                  title="TikTok preview"
+                                  allow="fullscreen; picture-in-picture"
+                                  allowFullScreen
+                                  className="h-[540px] w-full"
+                                />
+                              ) : getInstagramEmbedUrl(current.previewVideo) ? (
+                                <iframe
+                                  src={getInstagramEmbedUrl(current.previewVideo)!}
+                                  title="Instagram preview"
+                                  allow="encrypted-media; picture-in-picture"
+                                  allowFullScreen
+                                  className="h-[540px] w-full bg-white"
                                 />
                               ) : isDirectVideoUrl(current.previewVideo) ? (
                                 <video src={current.previewVideo} controls className="h-48 w-full object-cover" />
