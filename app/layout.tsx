@@ -38,23 +38,21 @@ const oswald = Oswald({
 export const metadata: Metadata = {
   metadataBase: new URL("https://loxitis-studio.vercel.app"),
   title: {
-    default: "௹ Tυαɳ Mυԃα Eʅ — Creator, Developer & System Architect",
-    template: "%s | Tuan Muda El",
+    default: "ACID — Creative Developer & Motion Designer",
+    template: "%s | ACID",
   },
-  description:
-    "Selamat datang di portfolio Tuan Muda El. Creator, Developer & System Architect yang mengubah kompleksitas abstrak menjadi sistem terukur. Eksplorasi project, artikel, dan pengalaman profesional.",
-  applicationName: "Tuan Muda El",
-  authors: [{ name: "Tuan Muda El" }],
-  creator: "Tuan Muda El",
-  publisher: "Tuan Muda El",
+  description: "Motion Designer & Creative Developer. Crafting cinematic visuals and interactive experiences.",
+  applicationName: "ACID",
+  authors: [{ name: "ACID" }],
+  creator: "ACID",
+  publisher: "ACID",
   keywords: [
-    "Tuan Muda El",
-    "portfolio developer",
-    "system architect indonesia",
-    "software engineer portfolio",
-    "web developer jakarta",
+    "ACID",
+    "motion designer",
     "creative developer",
-    "fullstack developer indonesia",
+    "cinematic visuals",
+    "interactive experiences",
+    "motion graphics portfolio",
   ],
   alternates: {
     canonical: "/",
@@ -62,24 +60,23 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: "/",
-    siteName: "Tuan Muda El",
-    title: "௹ Tυαɳ Mυԃα Eʅ — Portfolio & Creative Works",
-    description:
-      "Eksplorasi karya kreatif, proyek teknologi, dan pemikiran mendalam tentang system architecture dan software engineering.",
+    siteName: "ACID",
+    title: "ACID — Creative Developer & Motion Designer",
+    description: "Crafting cinematic visuals and interactive experiences.",
     locale: "id_ID",
     images: [
       {
         url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "Tuan Muda El - Home Portfolio",
+        alt: "ACID — Creative Developer & Motion Designer",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "௹ Tυαɳ Mυԃα Eʅ — Portfolio",
-    description: "Creator, Developer & System Architect. Explore my works →",
+    title: "ACID — Creative Developer & Motion Designer",
+    description: "Crafting cinematic visuals and interactive experiences.",
     images: ["/opengraph-image"],
   },
   robots: {
