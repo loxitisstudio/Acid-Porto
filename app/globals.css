@@ -67,6 +67,14 @@
 }
 
 @layer components {
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   .reveal-on-scroll {
     animation: reveal-in 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
     animation-delay: var(--reveal-delay, 0s);

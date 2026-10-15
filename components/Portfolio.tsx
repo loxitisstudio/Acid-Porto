@@ -15,12 +15,12 @@ const categories = [
   "DESIGN",
   "3D RENDER",
   "ROBLOX DEVELOPMENT"
-];
+] as const;
 
 export default function Portfolio() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [active, setActive] = useState<Project | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState("ALL WORKS");
+  const [selectedCategory, setSelectedCategory] = useState<(typeof categories)[number]>("ALL WORKS");
 
   useEffect(() => {
     let isMounted = true;
@@ -70,8 +70,8 @@ export default function Portfolio() {
   const displayedProjects = filteredProjects.slice(0, 6);
 
   return (
-    <section id="work" className="relative w-full py-12 md:py-16 px-6 md:px-14 overflow-hidden bg-bg text-ink">
-  <div className="w-full max-w-[1600px] mx-auto flex flex-col gap-6">
+    <section id="work" className="relative w-full overflow-x-clip bg-bg px-6 py-12 text-ink md:px-14 md:py-16">
+  <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6">
         
         {/* BAGIAN ATAS: Judul Section */}
         <div>
@@ -88,40 +88,44 @@ export default function Portfolio() {
         </div>
 
         {/* BAGIAN UTAMA: Kiri = Filter Kategori, Kanan = Grid 3 Kolom */}
-        <div className="flex flex-col lg:flex-row items-start gap-12 w-full">
+        <div className="grid w-full grid-cols-1 items-start gap-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-12">
           
           {/* SISI KIRI: Kategori Filter (Sticky) */}
-<div className="w-full lg:w-[260px] lg:sticky lg:top-32 self-start flex flex-col gap-4 z-10 shrink-0">
-  <Reveal delay={0.1}>
-    {/* Ubah gap-2.5 menjadi gap-5 atau gap-6 agar jarak antar tombol lebih renggang dan panjang ke bawah */}
-    <div className="flex flex-col gap-5 items-start border-l border-line/30 pl-3 py-2">
-      {categories.map((cat) => {
-        const isSelected = selectedCategory === cat;
-        return (
-          <button
-            key={cat}
-            onClick={() => setSelectedCategory(cat)}
-            data-cursor-hover
-            className={`relative pl-4 text-[11px] font-mono uppercase tracking-[0.18em] transition-colors text-left py-1.5 ${
-              isSelected 
-                ? "text-accent font-bold" 
-                : "text-ink-2/50 hover:text-ink"
-            }`}
+          <aside
+            aria-label="Filter projects by category"
+            className="z-10 w-full self-start lg:sticky lg:top-24"
           >
-            {isSelected && (
-              <span className="absolute bottom-0 left-0 top-0 w-[2px] animate-[reveal-in_200ms_ease-out] bg-accent shadow-[0_0_10px_#00D9FF]" />
-            )}
-            {cat}
-          </button>
-        );
-      })}
-    </div>
-  </Reveal>
-</div>
+            <Reveal delay={0.1}>
+              <div className="no-scrollbar flex w-full flex-row gap-2 overflow-x-auto whitespace-nowrap border-b border-line/30 py-2 lg:flex-col lg:items-start lg:gap-5 lg:overflow-visible lg:border-b-0 lg:border-l lg:py-2 lg:pl-3">
+                {categories.map((cat) => {
+                  const isSelected = selectedCategory === cat;
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setSelectedCategory(cat)}
+                      aria-pressed={isSelected}
+                      data-cursor-hover
+                      className={`relative shrink-0 px-4 py-2 text-left text-[11px] font-mono uppercase tracking-[0.18em] transition-colors duration-300 lg:py-1.5 ${
+                        isSelected
+                          ? "text-accent font-bold"
+                          : "text-ink-2/60 hover:text-ink"
+                      }`}
+                    >
+                      {isSelected && (
+                        <span className="absolute bottom-0 left-3 right-3 h-[2px] animate-[reveal-in_200ms_ease-out] bg-accent shadow-[0_0_10px_#00D9FF] lg:bottom-0 lg:left-0 lg:right-auto lg:top-0 lg:h-auto lg:w-[2px]" />
+                      )}
+                      {cat}
+                    </button>
+                  );
+                })}
+              </div>
+            </Reveal>
+          </aside>
 
           {/* SISI KANAN: Grid 3 Kolom (Total 6 Project) */}
-          <div className="w-full lg:w-[calc(100%-290px)] relative flex flex-col gap-8">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="relative flex w-full min-w-0 flex-col gap-8">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {displayedProjects.map((project, i) => (
                   <div key={project.id} className="animate-[reveal-in_400ms_ease-out_both]" style={{ animationDelay: `${i * 50}ms` }}>
                     <Reveal delay={i * 0.05}>

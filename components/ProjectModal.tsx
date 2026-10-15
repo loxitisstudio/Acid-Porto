@@ -277,6 +277,7 @@ export default function ProjectModal({
         aria-modal="true"
         aria-labelledby="project-modal-title"
         aria-describedby="project-modal-description"
+        data-lenis-prevent
         className="relative max-h-[90vh] w-full max-w-[1250px] min-w-0 overflow-y-auto overscroll-contain rounded-2xl border border-zinc-800/80 bg-zinc-950 shadow-2xl"
       >
         <button
