@@ -283,8 +283,11 @@ export default function ProjectModal({
           ✕
         </button>
 
-        <div className="grid min-w-0 grid-cols-1 md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-          <section aria-label="Project media" className="min-w-0 bg-black">
+        <div className="grid min-w-0 grid-cols-1 md:grid-cols-12">
+          <section
+            aria-label="Project media"
+            className="min-w-0 bg-black md:sticky md:top-6 md:col-span-7 md:self-start"
+          >
             <div className="relative min-w-0 overflow-hidden">
               {renderMedia()}
               <span className="absolute bottom-3 left-3 max-w-[calc(100%-5rem)] break-words rounded-full border border-white/10 bg-black/60 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.2em] text-zinc-200 backdrop-blur-sm">
@@ -347,7 +350,7 @@ export default function ProjectModal({
             )}
           </section>
 
-          <section className="flex min-w-0 flex-col break-words p-5 text-zinc-300 sm:p-8">
+          <section className="flex min-w-0 flex-col break-words p-5 text-zinc-300 sm:p-8 md:col-span-5">
             <div className="min-w-0 flex-1 space-y-6">
               <header className="min-w-0 pr-10">
                 <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 break-words text-[11px] font-mono uppercase tracking-[0.2em] text-zinc-400">
