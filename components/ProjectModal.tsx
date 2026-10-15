@@ -133,9 +133,16 @@ export default function ProjectModal({
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const galleryBaseRef = useRef<HTMLDivElement>(null);
+  const detailsColumnRef = useRef<HTMLElement>(null);
   const [portalReady, setPortalReady] = useState(false);
   const [selectedGallery, setSelectedGallery] = useState<SelectedGalleryItem>(null);
   const [failedMedia, setFailedMedia] = useState<Record<string, boolean>>({});
+  const [stackedGalleryCount, setStackedGalleryCount] = useState(0);
+  const gallery = project?.gallery?.filter((item) => item.trim()) ?? [];
+  const selectedIndex = project && selectedGallery?.projectId === project.id
+    ? selectedGallery.index
+    : -1;
 
   useEffect(() => {
     setPortalReady(true);
@@ -167,12 +174,47 @@ export default function ProjectModal({
   useEffect(() => {
     setSelectedGallery(null);
     setFailedMedia({});
+    setStackedGalleryCount(0);
   }, [project?.id]);
+
+  useEffect(() => {
+    const galleryBase = galleryBaseRef.current;
+    const detailsColumn = detailsColumnRef.current;
+    if (!galleryBase || !detailsColumn || gallery.length < 2) {
+      setStackedGalleryCount(0);
+      return;
+    }
+
+    const updateStackedGallery = () => {
+      if (!window.matchMedia("(min-width: 768px)").matches) {
+        setStackedGalleryCount(0);
+        return;
+      }
+
+      const heightDifference = detailsColumn.scrollHeight - galleryBase.offsetHeight;
+      const availableAssets = gallery.length - (selectedIndex >= 0 ? 1 : 0);
+      const mediaHeight = (galleryBase.clientWidth * 9) / 16 + 16;
+      const neededAssets = heightDifference > 180
+        ? Math.ceil(heightDifference / mediaHeight)
+        : 0;
+
+      setStackedGalleryCount(Math.min(availableAssets, neededAssets));
+    };
+
+    const observer = new ResizeObserver(updateStackedGallery);
+    observer.observe(galleryBase);
+    observer.observe(detailsColumn);
+    window.addEventListener("resize", updateStackedGallery);
+    updateStackedGallery();
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateStackedGallery);
+    };
+  }, [portalReady, project?.id, gallery.length, selectedIndex]);
 
   if (!project || !portalReady) return null;
 
-  const gallery = project.gallery?.filter((item) => item.trim()) ?? [];
-  const selectedIndex = selectedGallery?.projectId === project.id ? selectedGallery.index : -1;
   const selectedGalleryUrl = selectedIndex >= 0 ? gallery[selectedIndex] : null;
   const previewUrl = (project.previewVideo || project.videoUrl || "").trim();
   const mediaUrl = selectedGalleryUrl || previewUrl || project.thumbnail || "";
@@ -261,6 +303,68 @@ export default function ProjectModal({
     );
   };
 
+  const stackedGallery = gallery
+    .map((url, index) => ({ url, index }))
+    .filter(({ index }) => index !== selectedIndex)
+    .slice(0, stackedGalleryCount);
+
+  const renderStackedMedia = (url: string, index: number) => {
+    const key = `${project.id}:gallery:${index}:${url}`;
+    const source = getVideoSource(url);
+    const embedUrl = source === "youtube"
+      ? getYouTubeEmbedUrl(url)
+      : source === "vimeo"
+        ? getVimeoEmbedUrl(url)
+        : null;
+
+    if (failedMedia[key]) {
+      return (
+        <div className="flex aspect-video items-center justify-center bg-zinc-950 text-sm text-zinc-500">
+          This media could not be loaded.
+        </div>
+      );
+    }
+
+    if (source === "direct") {
+      return (
+        <video
+          src={url}
+          controls
+          muted
+          playsInline
+          onError={() => setFailedMedia((current) => ({ ...current, [key]: true }))}
+          className="aspect-video w-full bg-black object-contain"
+        />
+      );
+    }
+
+    if (embedUrl) {
+      return (
+        <iframe
+          src={embedUrl}
+          title={`${project.title} gallery item ${index + 1}`}
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowFullScreen
+          onError={() => setFailedMedia((current) => ({ ...current, [key]: true }))}
+          className="aspect-video w-full bg-black"
+        />
+      );
+    }
+
+    return (
+      <div className="relative aspect-video w-full bg-zinc-950">
+        <Image
+          src={url}
+          alt={`${project.title} gallery item ${index + 1}`}
+          fill
+          sizes="(max-width: 768px) 100vw, 60vw"
+          className="object-contain"
+          onError={() => setFailedMedia((current) => ({ ...current, [key]: true }))}
+        />
+      </div>
+    );
+  };
+
   return createPortal(
     <div
       onClick={onClose}
@@ -286,71 +390,89 @@ export default function ProjectModal({
         <div className="grid min-w-0 grid-cols-1 md:grid-cols-12">
           <section
             aria-label="Project media"
-            className="min-w-0 bg-black md:sticky md:top-6 md:col-span-7 md:self-start"
+            className="min-w-0 bg-black md:col-span-7 md:self-start"
           >
-            <div className="relative min-w-0 overflow-hidden">
-              {renderMedia()}
-              <span className="absolute bottom-3 left-3 max-w-[calc(100%-5rem)] break-words rounded-full border border-white/10 bg-black/60 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.2em] text-zinc-200 backdrop-blur-sm">
-                {project.category}
-              </span>
+            <div ref={galleryBaseRef} className="md:sticky md:top-6">
+              <div className="relative min-w-0 overflow-hidden">
+                {renderMedia()}
+                <span className="absolute bottom-3 left-3 max-w-[calc(100%-5rem)] break-words rounded-full border border-white/10 bg-black/60 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.2em] text-zinc-200 backdrop-blur-sm">
+                  {project.category}
+                </span>
+              </div>
+
+              {gallery.length > 0 && (
+                <div className="border-t border-white/10 bg-zinc-950/90 px-4 py-3">
+                  <div className="flex min-w-0 gap-3 overflow-x-auto overscroll-x-contain pb-1">
+                    {gallery.map((item, index) => {
+                      const key = `${project.id}:gallery:${index}:${item}`;
+                      const source = getVideoSource(item);
+                      const isSelected = selectedIndex === index;
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => setSelectedGallery({ projectId: project.id, index })}
+                          aria-label={`Show gallery item ${index + 1}`}
+                          aria-pressed={isSelected}
+                          className={`relative aspect-video h-14 w-24 shrink-0 overflow-hidden rounded-lg border bg-zinc-900 transition-colors sm:h-16 sm:w-28 ${
+                            isSelected
+                              ? "border-cyan-300 shadow-[0_0_0_1px_rgba(103,232,249,0.35)]"
+                              : "border-zinc-700/80 hover:border-zinc-500"
+                          }`}
+                        >
+                          {failedMedia[key] ? (
+                            <span className="flex h-full w-full items-center justify-center text-[10px] text-zinc-500">
+                              Unavailable
+                            </span>
+                          ) : source === "direct" ? (
+                            <video
+                              src={item}
+                              muted
+                              playsInline
+                              preload="metadata"
+                              onError={() => setFailedMedia((current) => ({ ...current, [key]: true }))}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : source === "youtube" || source === "vimeo" ? (
+                            <span aria-hidden="true" className="flex h-full w-full items-center justify-center text-lg text-zinc-200">
+                              ▶
+                            </span>
+                          ) : (
+                            <Image
+                              src={item}
+                              alt=""
+                              fill
+                              sizes="112px"
+                              className="object-cover"
+                              onError={() => setFailedMedia((current) => ({ ...current, [key]: true }))}
+                            />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {gallery.length > 0 && (
-              <div className="border-t border-white/10 bg-zinc-950/90 px-4 py-3">
-                <div className="flex min-w-0 gap-3 overflow-x-auto overscroll-x-contain pb-1">
-                  {gallery.map((item, index) => {
-                    const key = `${project.id}:gallery:${index}:${item}`;
-                    const source = getVideoSource(item);
-                    const isSelected = selectedIndex === index;
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => setSelectedGallery({ projectId: project.id, index })}
-                        aria-label={`Show gallery item ${index + 1}`}
-                        aria-pressed={isSelected}
-                        className={`relative aspect-video h-14 w-24 shrink-0 overflow-hidden rounded-lg border bg-zinc-900 transition-colors sm:h-16 sm:w-28 ${
-                          isSelected
-                            ? "border-cyan-300 shadow-[0_0_0_1px_rgba(103,232,249,0.35)]"
-                            : "border-zinc-700/80 hover:border-zinc-500"
-                        }`}
-                      >
-                        {failedMedia[key] ? (
-                          <span className="flex h-full w-full items-center justify-center text-[10px] text-zinc-500">
-                            Unavailable
-                          </span>
-                        ) : source === "direct" ? (
-                          <video
-                            src={item}
-                            muted
-                            playsInline
-                            preload="metadata"
-                            onError={() => setFailedMedia((current) => ({ ...current, [key]: true }))}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : source === "youtube" || source === "vimeo" ? (
-                          <span aria-hidden="true" className="flex h-full w-full items-center justify-center text-lg text-zinc-200">
-                            ▶
-                          </span>
-                        ) : (
-                          <Image
-                            src={item}
-                            alt=""
-                            fill
-                            sizes="112px"
-                            className="object-cover"
-                            onError={() => setFailedMedia((current) => ({ ...current, [key]: true }))}
-                          />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+            {stackedGallery.length > 0 && (
+              <div className="space-y-3 border-t border-white/10 bg-black p-3 sm:p-4">
+                {stackedGallery.map(({ url, index }) => (
+                  <div
+                    key={`${project.id}:stacked-gallery:${index}`}
+                    className="overflow-hidden rounded-xl border border-white/10 bg-zinc-950"
+                  >
+                    {renderStackedMedia(url, index)}
+                  </div>
+                ))}
               </div>
             )}
           </section>
 
-          <section className="flex min-w-0 flex-col break-words p-5 text-zinc-300 sm:p-8 md:col-span-5">
+          <section
+            ref={detailsColumnRef}
+            className="flex min-w-0 flex-col break-words p-5 text-zinc-300 sm:p-8 md:col-span-5"
+          >
             <div className="min-w-0 flex-1 space-y-6">
               <header className="min-w-0 pr-10">
                 <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 break-words text-[11px] font-mono uppercase tracking-[0.2em] text-zinc-400">
